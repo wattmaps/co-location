@@ -1,0 +1,6 @@
+**/*.env
+**/*.csv
+**/*.srw
+**/*.gdb
+**/*.DS_Store
+*.Rmd
