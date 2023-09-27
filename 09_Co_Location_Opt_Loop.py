@@ -133,12 +133,10 @@ def runOptimization(PID):
 
     # TRANSMISSION CAPACITY
     # Define associated transmission substations capacity in MW
-    substation_MW = pid_substation_df.loc[pid_substation_df['PID'] == PID, 'substation_mw'].values[0]
-
     if cap_w <= 100:
         tx_MW = cap_w 
     else:
-        tx_MW = substation_MW
+        tx_MW = pid_substation_df.loc[pid_substation_df['PID'] == PID, 'substation_mw'].values[0]
 
     ''' ============================
     Set vector parameters
