@@ -73,7 +73,7 @@ output_df['PID'] = seq
 # Save df to csv 
 # output_df.to_csv(os.path.join(inputFolder, 'model_results.csv'), index = False)
 
-output_df_path = os.path.join(inputFolder, 'model_results_test_pid1-5.csv')
+output_df_path = os.path.join(inputFolder, 'model_results_test.csv')
 # output_df = pd.read_csv(output_df_path, engine = 'python')
 
 
@@ -133,7 +133,6 @@ def runOptimization(PID):
 
     # TRANSMISSION CAPACITY
     # Define associated transmission substations capacity in MW
-
     substation_MW = pid_substation_df.loc[pid_substation_df['PID'] == PID, 'substation_mw'].values[0]
 
     if cap_w <= 100:
@@ -334,8 +333,8 @@ def runOptimization(PID):
     ## Constraint (4) ---
     ## Define lifetime costs (equation #2)
     def lifetimeCosts_rule(model):
-        return model.cost == (model.solar_capacity*model.capEx_s) + (model.solar_capacity*((model.om_s*n)/model.CRF)) + \
-            (model.wind_capacity*model.capEx_w) + (model.wind_capacity*((model.om_w*n)/model.CRF)) + \
+        return model.cost == (model.solar_capacity*model.capEx_s) + (model.solar_capacity*((model.om_s*model.n)/model.CRF)) + \
+            (model.wind_capacity*model.capEx_w) + (model.wind_capacity*((model.om_w*model.n)/model.CRF)) + \
                 (model.tx_capacity*model.capEx_tx) # + \
                 # model.P_batt_max * model.batt_power_cost + model.E_batt_max * model.batt_energy_cost
     model.annualCosts = Constraint(rule = lifetimeCosts_rule)
