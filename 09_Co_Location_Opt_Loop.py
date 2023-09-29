@@ -90,12 +90,12 @@ def runOptimization(PID):
     ============================ '''
 
     # CAPITAL AND OPERATION & MAINTENANCE COSTS
-    # Define capital expenditure for wind and solar (in USD/MW)
-    capEx_w = (950+700)/2*1000 
-    capEx_s = (752+618)/2*1000 
+    # Define capital expenditure for wind and solar (in USD/MW) ## updated using 2023 ATB and 2025 moderate scenario
+    capEx_w = 1268*1000 
+    capEx_s = 1248*1000
     # Define operations & maintenance costs for wind and solar (in USD/MW/yr)
-    om_w = (39+34)/2*1000 
-    om_s = (13+15)/2*1000 
+    om_w = 28.8*1000 
+    om_s = 20.5*1000 
 
     # CAPITAL RECOVERY FACTOR
     # Define discount rate for capital recovery factor
@@ -329,10 +329,10 @@ def runOptimization(PID):
     model.actualGenLTEtxCapacity = Constraint(model.HOURYEAR, rule = actualGenLTEtxCapacity_rule)
 
     ## Constraint (4) ---
-    ## Define lifetime costs (equation #2)
+    ## Define lifetime costs (equation #2) in net present value = overnight capital costs + NPV of fixed O&M (using annualPayments = CRF*NPV)
     def lifetimeCosts_rule(model):
-        return model.cost == (model.solar_capacity*model.capEx_s) + (model.solar_capacity*((model.om_s*model.n)/model.CRF)) + \
-            (model.wind_capacity*model.capEx_w) + (model.wind_capacity*((model.om_w*model.n)/model.CRF)) + \
+        return model.cost == (model.solar_capacity*model.capEx_s) + ((model.solar_capacity*model.om_s)/model.CRF) + \
+            (model.wind_capacity*model.capEx_w) + ((model.wind_capacity*model.om_w)/model.CRF) + \
                 (model.tx_capacity*model.capEx_tx) # + \
                 # model.P_batt_max * model.batt_power_cost + model.E_batt_max * model.batt_energy_cost
     model.annualCosts = Constraint(rule = lifetimeCosts_rule)
