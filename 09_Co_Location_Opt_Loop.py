@@ -64,7 +64,7 @@ Initialize df and filepath
 ============================ '''
 
 # Create a df with column names
-output_df = pd.DataFrame(columns = ['PID', 'solar_capacity', 'wind_capacity', 'solar_wind_ratio', 'revenue', 'cost', 'profit']) #tx_capacity
+output_df = pd.DataFrame(columns = ['PID', 'solar_capacity', 'wind_capacity', 'solar_wind_ratio', 'tx_capacity', 'revenue', 'cost', 'profit'])
 
 # Create sequence of PIDs (n=1335) and add to PID column
 seq = list(range(1, 1336))
@@ -76,6 +76,25 @@ output_df['PID'] = seq
 output_df_path = os.path.join(inputFolder, 'model_results_test.csv')
 # output_df = pd.read_csv(output_df_path, engine = 'python')
 
+''' ============================
+Read data
+============================ '''
+
+# Set file path and read csv for substation attributes
+pid_substation_file = os.path.join(inputFolder, 'PID_Attributes', 'substation.csv')
+pid_substation_df = pd.read_csv(pid_substation_file)
+
+# Set file path and read csv for potential capacity for solar
+cap_s_path = os.path.join(inputFolder, 'Potential_Installed_Capacity', 'solar_land_capacity.csv')
+cap_s_df = pd.read_csv(cap_s_path)
+
+# Set file path and read csv for potential capacity for wind
+cap_w_path = os.path.join(inputFolder, 'Potential_Installed_Capacity', 'wind_land_capacity.csv')
+cap_w_df = pd.read_csv(cap_w_path)
+
+# Set file path and read csv for associated GEA
+pid_gea_file = os.path.join(inputFolder, 'PID_Attributes', 'GEAs.csv')
+pid_gea_df = pd.read_csv(pid_gea_file)
 
 ''' ============================
 Define optimization function given a single value
@@ -114,21 +133,13 @@ def runOptimization(PID):
     sub = 7609776/200
     # Define kilometers for total transmission costs per MW
     # Corresponding distance to closest substation 115kV or higher by PID
-    pid_substation_file = os.path.join(inputFolder, 'PID_Attributes', 'substation.csv')
-    pid_substation_df = pd.read_csv(pid_substation_file)
     km = pid_substation_df.loc[pid_substation_df['PID'] == PID, 'distance_km'].values[0]
     # Define total transmission costs per MW (USD per MW cost of tx + substation)
     totalTx_perMW = i*km+sub
 
     # SOLAR AND WIND POTENTIAL INSTALLED CAPACITY
-    # Set filepath and read csv for potential capacity for solar
-    cap_s_path = os.path.join(inputFolder, 'Potential_Installed_Capacity', 'solar_land_capacity.csv')
-    cap_s_df = pd.read_csv(cap_s_path)
+    # Define potential installed capacity
     cap_s = cap_s_df.loc[cap_s_df['PID'] == PID, 'solar_installed_cap_mw'].iloc[0]
-
-    # Set file path and read csv for potential capacity for wind
-    cap_w_path = os.path.join(inputFolder, 'Potential_Installed_Capacity', 'wind_land_capacity.csv')
-    cap_w_df = pd.read_csv(cap_w_path)
     cap_w = cap_w_df.loc[cap_w_df['PID'] == PID, 'p_cap_mw'].iloc[0]
 
     # TRANSMISSION CAPACITY
@@ -143,9 +154,6 @@ def runOptimization(PID):
     ============================ '''
 
     ## WHOLESALE ELECTRICITY PRICES
-    pid_gea_file = os.path.join(inputFolder, 'PID_Attributes', 'GEAs.csv')
-    pid_gea_df = pd.read_csv(pid_gea_file)
-
     # Determine GEA associated with PID
     gea = pid_gea_df.loc[pid_gea_df['PID'] == PID, 'gea'].values[0]
 
@@ -235,7 +243,6 @@ def runOptimization(PID):
     model.cf_wind = Param(model.HOURYEAR, default = wind_cf_hourly)
     model.cf_solar = Param(model.HOURYEAR, default = solar_cf_hourly)
 
-
     ''' ============================
     Set scalar parameters
     ============================ '''
@@ -244,7 +251,6 @@ def runOptimization(PID):
     model.capEx_s = Param(default = capEx_s)
     model.om_w = Param(default = om_w)
     model.om_s = Param(default = om_s)
-    model.n = Param(default = n)
     model.CRF = Param(default = CRF)
     model.capEx_tx = Param(default = totalTx_perMW)
     model.pot_w = Param(default = cap_w)
@@ -441,13 +447,13 @@ def runOptimization(PID):
     # Store variable values from optimization
     solar_capacity = model_instance.solar_capacity.value
     wind_capacity = model_instance.wind_capacity.value
-    # tx_capacity = model_instance.tx_capacity.value
+    tx_capacity = model_instance.tx_capacity.value
     revenue = model_instance.revenue.value
     cost = model_instance.cost.value
     profit = model_instance.obj()
     solar_wind_ratio = solar_capacity/wind_capacity
 
-    output_df.loc[output_df['PID']== PID] = [PID, solar_capacity, wind_capacity, solar_wind_ratio, revenue, cost, profit] # tx_capacity
+    output_df.loc[output_df['PID']== PID] = [PID, solar_capacity, wind_capacity, solar_wind_ratio, tx_capacity, revenue, cost, profit]
 
 ''' ============================
 Define optimization function given a list 
@@ -482,7 +488,7 @@ Execute optimization loop
 ============================ '''
 
 PID_start = 1
-PID_end = PID_start + 1
+PID_end = PID_start + 5
 start_time = time.time()
 PID_list_in = list(range(PID_start, PID_end, 1))
 runOptimizationLoop(PID_list_in)  
