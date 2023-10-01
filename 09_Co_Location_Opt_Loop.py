@@ -271,10 +271,8 @@ def runOptimization(PID):
 
     # SLACK VARIABLES ---
     # Slack variable potential generation (without considering curtailment)
-    # model.potentialGen = Var(model.HOURYEAR)
     model.potentialGen = Var(model.HOURYEAR)
     # Slack variable actual generation (considering curtailment)
-    # model.actualGen = Var(model.HOURYEAR)
     model.actualGen = Var(model.HOURYEAR)  
     # Slack variable for lifetime revenue
     model.revenue = Var()
@@ -336,11 +334,17 @@ def runOptimization(PID):
 
     ## Constraint (4) ---
     ## Define lifetime costs (equation #2) in net present value = overnight capital costs + NPV of fixed O&M (using annualPayments = CRF*NPV)
-    def lifetimeCosts_rule(model):
-        return model.cost == (model.solar_capacity*model.capEx_s) + ((model.solar_capacity*model.om_s)/model.CRF) + \
-            (model.wind_capacity*model.capEx_w) + ((model.wind_capacity*model.om_w)/model.CRF) + \
-                (model.tx_capacity*model.capEx_tx) # + \
+    #def lifetimeCosts_rule(model):
+        #return model.cost == (model.solar_capacity*model.capEx_s) + ((model.solar_capacity*model.om_s)/model.CRF) + \
+            #(model.wind_capacity*model.capEx_w) + ((model.wind_capacity*model.om_w)/model.CRF) + \
+               # (model.tx_capacity*model.capEx_tx) # + \
                 # model.P_batt_max * model.batt_power_cost + model.E_batt_max * model.batt_energy_cost
+    #model.annualCosts = Constraint(rule = lifetimeCosts_rule)
+
+    ## Define lifetime costs
+    def lifetimeCosts_rule(model):
+        return model.cost == model.solar_capacity*(model.capEx_s + model.om_s*model.CRF) + \
+            model.wind_capacity*(model.capEx_w + model.om_w*model.CRF) + model.tx_capacity*model.capEx_tx
     model.annualCosts = Constraint(rule = lifetimeCosts_rule)
 
     ## Constraint (5) ---
@@ -488,7 +492,7 @@ Execute optimization loop
 ============================ '''
 
 PID_start = 1
-PID_end = PID_start + 5
+PID_end = PID_start + 2
 start_time = time.time()
 PID_list_in = list(range(PID_start, PID_end, 1))
 runOptimizationLoop(PID_list_in)  
