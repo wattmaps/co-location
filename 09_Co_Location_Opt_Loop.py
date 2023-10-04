@@ -143,8 +143,10 @@ def runOptimization(PID):
     d = 0.04 
     # Define number of years for capital recovery factor
     n = 25
+    n_bat = 12.5 # life of battery
     # Define capital recovery factor (scalar)
     CRF = (d*(1+d)**n)/((1+d)**n - 1)
+    CRFbat = (d*(1+d)**n_bat)/((1+d)**n_bat - 1)
 
     # TRANSMISSION AND SUBSTATION COSTS
     # Define USD2018 per km per MW for total transmission costs per MW
@@ -216,10 +218,14 @@ def runOptimization(PID):
     hour0.insert(0,0)
     hour0[:10]
     hour[:10]
+    hour0first  #RD: SET AS THE FIRST ROW OF hour0. then delete this comment
+    hour0last  #RD: SET AS THE LAST ROW OF hour0. then delete this comment
 
     # Add hour list to model
     model.t = Set(initialize = hour)
     model.t0 = Set(initialize = hour0)
+    model.t0first = Set(initialize = hour0first)
+    model.t0last = Set(initialize = hour0last)
     
     # Set year index
     year = list(range(1, 26))
@@ -231,6 +237,8 @@ def runOptimization(PID):
     # Add coupled index to model
     model.HOURYEAR = model.t * model.y
     model.HOUR0YEAR = model.t0 * model.y
+    model.HOUR0YEARFIRST = model.t0first * model.y
+    model.HOUR0YEARLAST = model.t0last * model.y
 
     ''' ============================
     Set vector parameters as dictionaries
@@ -283,6 +291,7 @@ def runOptimization(PID):
     model.om_w = Param(default = om_w)
     model.om_s = Param(default = om_s)
     model.CRF = Param(default = CRF)
+    model.CRFbat = Param(default = CRFbat)
     model.capEx_tx = Param(default = totalTx_perMW)
     model.pot_w = Param(default = cap_w)
     model.pot_s = Param(default = cap_s)
@@ -374,6 +383,16 @@ def runOptimization(PID):
                     (model.P_batt_max * model.batt_om)/CRF
     model.annualCosts = Constraint(rule = lifetimeCosts_rule)
 
+    ## Constraint (4) --- ## UPDATE FOR BATTERY - RD VERSION ACCOUNTING FOR BATTERY LIFE THAT IS LESS THAN SOLAR AND WIND
+    ## Define lifetime costs (equation #2) in net present value = overnight capital costs + NPV of fixed O&M (using annualPayments = CRF*NPV)
+    def lifetimeCosts_rule(model):
+        return model.cost == (model.solar_capacity*model.capEx_s) + ((model.solar_capacity*model.om_s)/model.CRF) + \
+            (model.pot_w*model.capEx_w) + ((model.pot_w*model.om_w)/model.CRF) + \
+                (model.tx_capacity*model.capEx_tx) + \
+                ((model.P_batt_max * model.batt_power_cost + model.E_batt_max * model.batt_energy_cost) * CRFbat +\
+                    (model.P_batt_max * model.batt_om))/CRF
+    model.annualCosts = Constraint(rule = lifetimeCosts_rule)
+    
     ## Constraint (4) --- Define lifetime costs
     # def lifetimeCosts_rule(model):
     #     return model.cost == model.solar_capacity*(model.capEx_s + model.om_s*model.CRF) + \
@@ -417,15 +436,15 @@ def runOptimization(PID):
     
     # CONSTRAINT (3a - BATTERY) --- 
     # initiate the battery charge at time  = 0 at 50% of maximum energy storage 
-    def batt_startAt50percent_rule(model, t0, y):
-        return model.E_batt_t[0, y] == 0.5 * model.E_batt_max
-    model.batt_startAt50percent = Constraint(model.HOUR0YEAR, rule = batt_startAt50percent_rule)
+    def batt_startAt50percent_rule(model, t, y):
+        return model.E_batt_t[t, y] == 0.5 * model.E_batt_max
+    model.batt_startAt50percent = Constraint(model.HOUR0YEARFIRST, rule = batt_startAt50percent_rule)
     
     # CONSTRAINT (3b - BATTERY) --- 
     # end the battery charge at time  = 8760 at 50% of maximum energy storage 
-    def batt_startAt50percent_rule(model, t0, y):
-        return model.E_batt_t[8760, y] == 0.5 * model.E_batt_max
-    model.batt_startAt50percent = Constraint(model.HOUR0YEAR, rule = batt_startAt50percent_rule)
+    def batt_startAt50percent_rule(model, t, y):
+        return model.E_batt_t[t, y] == 0.5 * model.E_batt_max
+    model.batt_startAt50percent = Constraint(model.HOUR0YEARLAST, rule = batt_startAt50percent_rule)
     
     # CONSTRAINT (4 - BATTERY) --- 
     # the losses while charging in hour t is equal to the charging power times 1 - the square root of the round trip efficiency
@@ -441,8 +460,8 @@ def runOptimization(PID):
 
     # CONSTRAINT (6 - BATTERY) --- 
     # energy balance of the battery is equal to the energy in the previous hour plus the charging power in hour t minus discharging power minus losses
-    def batt_energyBalance_rule(model, t0, y):
-        return model.E_batt_t[t0, y] == model.E_batt_t[t0-1, y] + model.P_char_t[t0, y] - model.P_dischar_t[t0, y] - model.L_char_t[t0, y] - model.L_dischar_t[t0, y]
+    def batt_energyBalance_rule(model, t, y):
+        return model.E_batt_t[t, y] == model.E_batt_t[t-1, y] + model.P_char_t[t, y] - model.P_dischar_t[t, y] - model.L_char_t[t, y] - model.L_dischar_t[t, y]
     model.batt_energyBalance = Constraint(model.HOUR0YEAR, rule = batt_energyBalance_rule)
     
     # CONSTRAINT (7 - BATTERY) --- CHECK THIS -- may need to change to actualGen
@@ -453,9 +472,9 @@ def runOptimization(PID):
     
     # CONSTRAINT (8a - BATTERY) ---  
     # Discharge in hour t must be less than or equal amount of energy in the battery in time t-1
-    def batt_dischargeLessThanPowerCapacity_rule(model, t0, y):
-        return model.P_dischar_t[t, y] <= model.E_batt_t[t0-1,y]
-    model.batt_dischargeLessThanPowerCapacity = Constraint(model.HOUR0YEAR, rule = batt_dischargeLessThanPowerCapacity_rule)
+    def batt_dischargeLessThanPowerCapacity_rule(model, t, y):
+        return model.P_dischar_t[t, y] <= model.E_batt_t[t-1,y]
+    model.batt_dischargeLessThanPowerCapacity = Constraint(model.HOURYEAR, rule = batt_dischargeLessThanPowerCapacity_rule)
     
     # CONSTRAINT (8b - BATTERY) ---  
     # Charge in hour t must be less than or equal to the maximum rated power of the battery 
