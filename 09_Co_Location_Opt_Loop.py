@@ -166,6 +166,7 @@ def runOptimization(PID):
 
     # TRANSMISSION CAPACITY
     # Define associated transmission substations capacity in MW
+    ## size to wind capacity * certain percentage
     tx_MW = cap_w * 1.0
     # if cap_w <= 100:
     #     tx_MW = cap_w 
@@ -416,15 +417,15 @@ def runOptimization(PID):
     
     # CONSTRAINT (3a - BATTERY) --- 
     # initiate the battery charge at time  = 0 at 50% of maximum energy storage 
-    def batt_startAt50percent_rule(model, t, y):
-        return model.E_batt_t[1, y] == 0.5 * model.E_batt_max
-    model.batt_startAt50percent = Constraint(model.HOURYEAR, rule = batt_startAt50percent_rule)
+    def batt_startAt50percent_rule(model, t0, y):
+        return model.E_batt_t[0, y] == 0.5 * model.E_batt_max
+    model.batt_startAt50percent = Constraint(model.HOUR0YEAR, rule = batt_startAt50percent_rule)
     
     # CONSTRAINT (3b - BATTERY) --- 
     # end the battery charge at time  = 8760 at 50% of maximum energy storage 
-    def batt_startAt50percent_rule(model, t, y):
+    def batt_startAt50percent_rule(model, t0, y):
         return model.E_batt_t[8760, y] == 0.5 * model.E_batt_max
-    model.batt_startAt50percent = Constraint(model.HOURYEAR, rule = batt_startAt50percent_rule)
+    model.batt_startAt50percent = Constraint(model.HOUR0YEAR, rule = batt_startAt50percent_rule)
     
     # CONSTRAINT (4 - BATTERY) --- 
     # the losses while charging in hour t is equal to the charging power times 1 - the square root of the round trip efficiency
@@ -452,9 +453,9 @@ def runOptimization(PID):
     
     # CONSTRAINT (8a - BATTERY) ---  
     # Discharge in hour t must be less than or equal amount of energy in the battery in time t-1
-    def batt_dischargeLessThanPowerCapacity_rule(model, t, y):
-        return model.P_dischar_t[t, y] <= model.E_batt_t[t-1,y]
-    model.batt_dischargeLessThanPowerCapacity = Constraint(model.HOURYEAR, rule = batt_dischargeLessThanPowerCapacity_rule)
+    def batt_dischargeLessThanPowerCapacity_rule(model, t0, y):
+        return model.P_dischar_t[t, y] <= model.E_batt_t[t0-1,y]
+    model.batt_dischargeLessThanPowerCapacity = Constraint(model.HOUR0YEAR, rule = batt_dischargeLessThanPowerCapacity_rule)
     
     # CONSTRAINT (8b - BATTERY) ---  
     # Charge in hour t must be less than or equal to the maximum rated power of the battery 
