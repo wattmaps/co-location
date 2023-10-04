@@ -218,8 +218,8 @@ def runOptimization(PID):
     hour0.insert(0,0)
     hour0[:10]
     hour[:10]
-    hour0first  #RD: SET AS THE FIRST ROW OF hour0. then delete this comment
-    hour0last  #RD: SET AS THE LAST ROW OF hour0. then delete this comment
+    hour0first = 0  #RD: SET AS THE FIRST ROW OF hour0. then delete this comment
+    hour0last = 8760 #RD: SET AS THE LAST ROW OF hour0. then delete this comment
 
     # Add hour list to model
     model.t = Set(initialize = hour)
@@ -389,8 +389,10 @@ def runOptimization(PID):
         return model.cost == (model.solar_capacity*model.capEx_s) + ((model.solar_capacity*model.om_s)/model.CRF) + \
             (model.pot_w*model.capEx_w) + ((model.pot_w*model.om_w)/model.CRF) + \
                 (model.tx_capacity*model.capEx_tx) + \
-                ((model.P_batt_max * model.batt_power_cost + model.E_batt_max * model.batt_energy_cost) * CRFbat +\
-                    (model.P_batt_max * model.batt_om))/CRF
+                (model.P_batt_max * model.batt_power_cost + model.E_batt_max * model.batt_energy_cost) +\
+                    (model.P_batt_max * model.batt_om / model.CRFbat) +\
+                ((model.P_batt_max * model.batt_power_cost_future + model.E_batt_max * model.batt_energy_cost_future) +\
+                    (model.P_batt_max * model.batt_om) / model.CRFbat))/ ((1 + d)**n_bat) # denominator needs to be reviewed
     model.annualCosts = Constraint(rule = lifetimeCosts_rule)
     
     ## Constraint (4) --- Define lifetime costs
@@ -462,7 +464,7 @@ def runOptimization(PID):
     # energy balance of the battery is equal to the energy in the previous hour plus the charging power in hour t minus discharging power minus losses
     def batt_energyBalance_rule(model, t, y):
         return model.E_batt_t[t, y] == model.E_batt_t[t-1, y] + model.P_char_t[t, y] - model.P_dischar_t[t, y] - model.L_char_t[t, y] - model.L_dischar_t[t, y]
-    model.batt_energyBalance = Constraint(model.HOUR0YEAR, rule = batt_energyBalance_rule)
+    model.batt_energyBalance = Constraint(model.HOURYEAR, rule = batt_energyBalance_rule)
     
     # CONSTRAINT (7 - BATTERY) --- CHECK THIS -- may need to change to actualGen
     # Charge in hour t must be less than or equal to the amt of potential generation 
@@ -472,15 +474,21 @@ def runOptimization(PID):
     
     # CONSTRAINT (8a - BATTERY) ---  
     # Discharge in hour t must be less than or equal amount of energy in the battery in time t-1
-    def batt_dischargeLessThanPowerCapacity_rule(model, t, y):
+    def batt_dischargeLessThanEnergyAvailable_rule(model, t, y):
         return model.P_dischar_t[t, y] <= model.E_batt_t[t-1,y]
-    model.batt_dischargeLessThanPowerCapacity = Constraint(model.HOURYEAR, rule = batt_dischargeLessThanPowerCapacity_rule)
+    model.batt_dischargeLessThanEnergyAvailable = Constraint(model.HOURYEAR, rule = batt_dischargeLessThanEnergyAvailable_rule)
     
     # CONSTRAINT (8b - BATTERY) ---  
     # Charge in hour t must be less than or equal to the maximum rated power of the battery 
     def batt_chargeLessThanPowerCapacity_rule(model, t, y):
         return model.P_char_t[t, y] <= model.P_batt_max
     model.batt_chargeLessThanPowerCapacity = Constraint(model.HOURYEAR, rule = batt_chargeLessThanPowerCapacity_rule)
+
+    # CONSTRAINT (8c - BATTERY) ---  
+    # Discharge in hour t must be less than or equal to the maximum rated power of the battery 
+    def batt_dischargeLessThanPowerCapacity_rule(model, t, y):
+        return model.P_dischar_t[t, y] <= model.P_batt_max
+    model.batt_dischargeLessThanPowerCapacity = Constraint(model.HOURYEAR, rule = batt_dischargeLessThanPowerCapacity_rule)
     
     # CONSTRAINT (9 - BATTERY) --- 
     # Electricity exported to the grid is equal to actual generation plus the battery dicharge minus the battery charging power
