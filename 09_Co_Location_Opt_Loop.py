@@ -134,6 +134,9 @@ def runOptimization(PID):
     battPowerCost =  288*1000 # in USD/MW for moderate in 2025
     battEnergyCost = 287*1000 # in USD/MWh for moderate in 2025
     battOMcost = 50*1000 # in USD/MW-year for 6 hr moderate in 2025
+    battPowerCostFuture =  280*1000 # in USD/MW for moderate in 2037
+    battEnergyCostFuture = 199*1000 # in USD/MWh for moderate in 2037
+    battOMcostFuture = 37*1000 # in USD/MW-year for 6 hr moderate in 2037
     
     ## Battery efficiency
     rtEfficiency_sqrt = sqrt(0.85)
@@ -300,6 +303,9 @@ def runOptimization(PID):
     model.batt_power_cost = Param(default = battPowerCost)
     model.batt_energy_cost = Param(default = battEnergyCost)
     model.batt_om = Param(default = battOMcost)
+    model.batt_power_cost_future = Param(default = battPowerCostFuture)
+    model.batt_energy_cost_future = Param(default = battEnergyCostFuture)
+    model.batt_om_future = Param(default = battOMcostFuture)
 
     ''' ============================
     Set decision, slack, and battery variables
@@ -392,7 +398,7 @@ def runOptimization(PID):
                 (model.P_batt_max * model.batt_power_cost + model.E_batt_max * model.batt_energy_cost) +\
                     (model.P_batt_max * model.batt_om / model.CRFbat) +\
                 ((model.P_batt_max * model.batt_power_cost_future + model.E_batt_max * model.batt_energy_cost_future) +\
-                    (model.P_batt_max * model.batt_om) / model.CRFbat))/ ((1 + d)**n_bat) # denominator needs to be reviewed
+                    (model.P_batt_max * model.batt_om_future / model.CRFbat))/ ((1 + d)**n_bat) # denominator needs to be reviewed
     model.annualCosts = Constraint(rule = lifetimeCosts_rule)
     
     ## Constraint (4) --- Define lifetime costs
