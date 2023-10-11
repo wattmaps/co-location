@@ -179,7 +179,7 @@ def runOptimization(PID):
     # TRANSMISSION CAPACITY
     # Define associated transmission substations capacity in MW
     # Size transmission to wind capacity * certain percentage
-    tx_MW = cap_w * 1.2
+    tx_MW = cap_w * 1.0
 
     # if cap_w <= 100:
     #     tx_MW = cap_w 
