@@ -16,7 +16,7 @@ start_time = time.time()
 current_dir = os.getcwd()
 print(current_dir)
 
-# current_dir = "/Users/grace/Documents/Wattmaps/co-location"
+current_dir = "/Users/grace/Documents/Wattmaps/co-location"
 inputFolder = os.path.join(current_dir, 'data')
 
 ''' ============================
@@ -27,8 +27,8 @@ solver = 'cplex'
 
 if solver == 'cplex':
     opt = SolverFactory('cplex', executable = '/Applications/CPLEX_Studio2211/cplex/bin/x86-64_osx/cplex')
-    opt.options['mipgap'] = 0.005
-    opt.options['optimalitytarget'] = 2 ## https://www.ibm.com/docs/en/icos/12.10.0?topic=parameters-optimality-target
+    opt.options['mipgap'] = 0.05
+    opt.options['optimalitytarget'] = 3 ## https://www.ibm.com/docs/en/icos/12.10.0?topic=parameters-optimality-target
 
 ''' ============================
 Define functions to generate dictionary objects from dfs
@@ -66,7 +66,9 @@ Initialize df and filepath
 ============================ '''
 
 # Create a df with column names
+#output_df = pd.DataFrame(columns = ['PID', 'solar_capacity', 'wind_capacity', 'solar_wind_ratio', 'tx_capacity', 'batteryCap', 'batteryEnergy', 'revenue', 'cost', 'profit'])
 output_df = pd.DataFrame(columns = ['PID', 'solar_capacity', 'wind_capacity', 'solar_wind_ratio', 'tx_capacity', 'revenue', 'cost', 'profit'])
+
 
 # Create sequence of PIDs (n=1335) and add to PID column
 seq = list(range(1, 1336))
@@ -151,6 +153,8 @@ def runOptimization(PID):
     # Define capital recovery factor (scalar)
     CRF = (d*(1+d)**n)/((1+d)**n - 1)
     CRFbat = (d*(1+d)**n_bat)/((1+d)**n_bat - 1)
+    ## denominator of battery 
+    denom_batt = (1 + d)**n_bat
 
     # TRANSMISSION AND SUBSTATION COSTS
     # Define USD2018 per km per MW for total transmission costs per MW
@@ -222,8 +226,8 @@ def runOptimization(PID):
     hour0.insert(0,0)
     hour0[:10]
     hour[:10]
-    hour0first = 0  #RD: SET AS THE FIRST ROW OF hour0. then delete this comment
-    hour0last = 8760 #RD: SET AS THE LAST ROW OF hour0. then delete this comment
+    #hour0first = 0  #RD: SET AS THE FIRST ROW OF hour0. then delete this comment
+    #hour0last = 8760 #RD: SET AS THE LAST ROW OF hour0. then delete this comment
 
     # Add hour list to model
     model.t = Set(initialize = hour)
@@ -307,6 +311,7 @@ def runOptimization(PID):
     model.batt_power_cost_future = Param(default = battPowerCostFuture)
     model.batt_energy_cost_future = Param(default = battEnergyCostFuture)
     model.batt_om_future = Param(default = battOMcostFuture)
+    model.duration_batt = Param(default = 6)
 
     ''' ============================
     Set decision, slack, and battery variables
@@ -326,9 +331,9 @@ def runOptimization(PID):
     # Slack variable for lifetime costs
     model.cost = Var()
     
-    # BATTERY VARIABLES ---
+    # # BATTERY VARIABLES ---
     # Maximum energy storage of battery
-    model.duration_batt = Var(within=NonNegativeReals)
+    #model.duration_batt = Var(within=NonNegativeReals)
     # Maximum power of battery
     model.P_batt_max = Var(within=NonNegativeReals)
     # Maximum energy of battery
@@ -380,16 +385,6 @@ def runOptimization(PID):
         return model.Export_t[t, y] <= model.tx_capacity
     model.actualGenLTEtxCapacity = Constraint(model.HOURYEAR, rule = actualGenLTEtxCapacity_rule)
 
-    ## Constraint (4) --- ## UPDATE FOR BATTERY
-    ## Define lifetime costs (equation #2) in net present value = overnight capital costs + NPV of fixed O&M (using annualPayments = CRF*NPV)
-    # def lifetimeCosts_rule(model):
-    #     return model.cost == (model.solar_capacity*model.capEx_s) + ((model.solar_capacity*model.om_s)/model.CRF) + \
-    #         (model.pot_w*model.capEx_w) + ((model.pot_w*model.om_w)/model.CRF) + \
-    #             (model.tx_capacity*model.capEx_tx) + \
-    #             model.P_batt_max * model.batt_power_cost + model.E_batt_max * model.batt_energy_cost +\
-    #                 (model.P_batt_max * model.batt_om)/CRF
-    # model.annualCosts = Constraint(rule = lifetimeCosts_rule)
-
     ## Constraint (4) --- ## UPDATE FOR BATTERY - RD VERSION ACCOUNTING FOR BATTERY LIFE THAT IS LESS THAN SOLAR AND WIND
     ## Define lifetime costs (equation #2) in net present value = overnight capital costs + NPV of fixed O&M (using annualPayments = CRF*NPV)
     def lifetimeCosts_rule(model):
@@ -398,17 +393,10 @@ def runOptimization(PID):
                 (model.tx_capacity*model.capEx_tx) + \
                 (model.P_batt_max * model.batt_power_cost + model.E_batt_max * model.batt_energy_cost) +\
                     (model.P_batt_max * model.batt_om / model.CRFbat) +\
-                ((model.P_batt_max * model.batt_power_cost_future + model.E_batt_max * model.batt_energy_cost_future) +\
-                    (model.P_batt_max * model.batt_om_future / model.CRFbat))/ ((1 + d)**n_bat) # denominator needs to be reviewed
-    model.annualCosts = Constraint(rule = lifetimeCosts_rule)
+                  ((model.P_batt_max * model.batt_power_cost_future + model.E_batt_max * model.batt_energy_cost_future) +\
+                      (model.P_batt_max * model.batt_om_future / model.CRFbat))/ denom_batt # denominator needs to be reviewed
+    model.lifetimeCosts = Constraint(rule = lifetimeCosts_rule)
     
-    ## Constraint (4) --- Define lifetime costs
-    # def lifetimeCosts_rule(model):
-    #     return model.cost == model.solar_capacity*(model.capEx_s + model.om_s*model.CRF) + \
-    #         model.pot_w*(model.capEx_w + model.om_w*model.CRF) + model.tx_capacity*model.capEx_tx +\
-    #             model.P_batt_max * model.batt_power_cost + model.E_batt_max * model.batt_energy_cost +\
-    #                 (model.P_batt_max * model.batt_om)/CRF
-    # model.annualCosts = Constraint(rule = lifetimeCosts_rule)
 
     ## Constraint (5) ---
     ## Ensure that capacity is less than or equal to potential for solar (equation #5)
@@ -433,9 +421,9 @@ def runOptimization(PID):
 
     # CONSTRAINT (1 - BATTERY) ---
     # Battery cannot simultaneously charge and discharge
-    def batt_noSimultaneousChargingDischarging_rule(model, t, y):
-        return model.P_char_t[t,y] * model.P_dischar_t[t,y] == 0
-    model.batt_noSimultaneousChargingDischarging = Constraint(model.HOURYEAR, rule = batt_noSimultaneousChargingDischarging_rule)
+    #def batt_noSimultaneousChargingDischarging_rule(model, t, y):
+    #    return model.P_char_t[t,y] * model.P_dischar_t[t,y] == 0
+    #model.batt_noSimultaneousChargingDischarging = Constraint(model.HOURYEAR, rule = batt_noSimultaneousChargingDischarging_rule)
     
     # CONSTRAINT (2 - BATTERY) ---
     # No charging in hour 1
@@ -509,8 +497,7 @@ def runOptimization(PID):
         return model.E_batt_t[t,y] <= model.E_batt_max
     model.batt_chargeLessThanRated = Constraint(model.HOURYEAR, rule = batt_energyLessThanMaxRated_rule)
     
-    
-    # CONSTRAINT (12 - BATTERY) --- 
+    # CONSTRAINT (11 - BATTERY) --- 
     # Maximum battery energy is equal to the battery duration times the maximum power of the battery
     def batt_maxEnergy_rule(model):
         return model.E_batt_max == model.P_batt_max * model.duration_batt
@@ -525,16 +512,23 @@ def runOptimization(PID):
 
     # Store variable values from optimization
     solar_capacity = model_instance.solar_capacity.value
-    wind_capacity = model_instance.wind_capacity.value
+    wind_capacity = model_instance.pot_w.value
     tx_capacity = model_instance.tx_capacity.value
     revenue = model_instance.revenue.value
     cost = model_instance.cost.value
     profit = model_instance.obj()
     solar_wind_ratio = solar_capacity/wind_capacity
     batteryCap = model_instance.P_batt_max.value
+    batteryEnergy = model_instance.E_batt_max.value
     print(solar_wind_ratio)
 
-    output_df.loc[output_df['PID']== PID] = [PID, solar_capacity, wind_capacity, solar_wind_ratio, tx_capacity, revenue, cost, profit]
+    output_df.loc[output_df['PID']== PID] = [PID, solar_capacity, wind_capacity, solar_wind_ratio, tx_capacity, batteryCap, batteryEnergy, revenue, cost, profit]
+    #output_df.loc[output_df['PID']== PID] = [PID, solar_capacity, wind_capacity, solar_wind_ratio, tx_capacity, revenue, cost, profit]
+
+actualGen = model_instance.actualGen.extract_values()
+actualGen_df = pd.DataFrame.from_dict(actualGen, orient = "index")
+actualGen_df_path = os.path.join(inputFolder, 'model_results_test_actualGen.csv')
+actualGen_df.to_csv(actualGen_df_path, index = True)
 
 ''' ============================
 Define optimization function given a list 
