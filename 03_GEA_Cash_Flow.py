@@ -27,17 +27,27 @@ for i in gea_region_codes:
     PTC_wind = 26 
 
     # Set filepath for folder
-    ePrice_df_folder = os.path.join(inputFolder, 'Cambium22_Electrification', 'input')
+    ePrice_df_folder = os.path.join(inputFolder, 'Cambium22_Mid-case', 'input')
+    # ePrice_df_folder = os.path.join(inputFolder, 'Cambium22_Electrification', 'input')
     
     # Set filepath for csv
-    ePrice_path_t1 = ePrice_df_folder + '/Cambium22_Electrification_hourly_' + gea + '_2024.csv'
-    ePrice_path_t2 = ePrice_df_folder + '/Cambium22_Electrification_hourly_' + gea + '_2026.csv'
-    ePrice_path_t3 = ePrice_df_folder + '/Cambium22_Electrification_hourly_' + gea + '_2028.csv'
-    ePrice_path_t4 = ePrice_df_folder + '/Cambium22_Electrification_hourly_' + gea + '_2030.csv'
-    ePrice_path_t5 = ePrice_df_folder + '/Cambium22_Electrification_hourly_' + gea + '_2035.csv'
-    ePrice_path_t6 = ePrice_df_folder + '/Cambium22_Electrification_hourly_' + gea + '_2040.csv'
-    ePrice_path_t7 = ePrice_df_folder + '/Cambium22_Electrification_hourly_' + gea + '_2045.csv'
-    ePrice_path_t8 = ePrice_df_folder + '/Cambium22_Electrification_hourly_' + gea + '_2050.csv'
+    ePrice_path_t1 = ePrice_df_folder + '/Cambium22_MidCase_hourly_' + gea + '_2024.csv'
+    ePrice_path_t2 = ePrice_df_folder + '/Cambium22_MidCase_hourly_' + gea + '_2026.csv'
+    ePrice_path_t3 = ePrice_df_folder + '/Cambium22_MidCase_hourly_' + gea + '_2028.csv'
+    ePrice_path_t4 = ePrice_df_folder + '/Cambium22_MidCase_hourly_' + gea + '_2030.csv'
+    ePrice_path_t5 = ePrice_df_folder + '/Cambium22_MidCase_hourly_' + gea + '_2035.csv'
+    ePrice_path_t6 = ePrice_df_folder + '/Cambium22_MidCase_hourly_' + gea + '_2040.csv'
+    ePrice_path_t7 = ePrice_df_folder + '/Cambium22_MidCase_hourly_' + gea + '_2045.csv'
+    ePrice_path_t8 = ePrice_df_folder + '/Cambium22_MidCase_hourly_' + gea + '_2050.csv'
+
+    # ePrice_path_t1 = ePrice_df_folder + '/Cambium22_Electrification_hourly_' + gea + '_2024.csv'
+    # ePrice_path_t2 = ePrice_df_folder + '/Cambium22_Electrification_hourly_' + gea + '_2026.csv'
+    # ePrice_path_t3 = ePrice_df_folder + '/Cambium22_Electrification_hourly_' + gea + '_2028.csv'
+    # ePrice_path_t4 = ePrice_df_folder + '/Cambium22_Electrification_hourly_' + gea + '_2030.csv'
+    # ePrice_path_t5 = ePrice_df_folder + '/Cambium22_Electrification_hourly_' + gea + '_2035.csv'
+    # ePrice_path_t6 = ePrice_df_folder + '/Cambium22_Electrification_hourly_' + gea + '_2040.csv'
+    # ePrice_path_t7 = ePrice_df_folder + '/Cambium22_Electrification_hourly_' + gea + '_2045.csv'
+    # ePrice_path_t8 = ePrice_df_folder + '/Cambium22_Electrification_hourly_' + gea + '_2050.csv'
 
     # Read csv and remove first 5 rows
     ePrice_df_t1 = pd.read_csv(ePrice_path_t1, skiprows = 5)
@@ -96,5 +106,6 @@ for i in gea_region_codes:
     ePrice_df_wide = pd.pivot(ePrice_df_long, index = 'hour', columns = 'year', values = 'PV_total_cost_enduse')
 
     # Save df to CSV file by GEA
-    folder = os.path.join(inputFolder, 'Cambium22_Electrification', 'Cash_Flow')
+    folder = os.path.join(inputFolder, 'Cambium22_Mid-case', 'Cash_Flow')
+    # folder = os.path.join(inputFolder, 'Cambium22_Electrification', 'Cash_Flow')
     ePrice_df_wide.to_csv(f'{folder}/cambiumHourly_{gea}.csv')
