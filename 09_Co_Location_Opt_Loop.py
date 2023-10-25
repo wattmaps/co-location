@@ -27,8 +27,8 @@ solver = 'cplex'
 
 if solver == 'cplex':
     opt = SolverFactory('cplex', executable = '/Applications/CPLEX_Studio2211/cplex/bin/x86-64_osx/cplex')
-    opt.options['mipgap'] = 0.05
-    opt.options['optimalitytarget'] = 3 ## https://www.ibm.com/docs/en/icos/12.10.0?topic=parameters-optimality-target
+    opt.options['mipgap'] = 0.005
+    opt.options['optimalitytarget'] = 1 ## https://www.ibm.com/docs/en/icos/12.10.0?topic=parameters-optimality-target
 
 ''' ============================
 Define functions to generate dictionary objects from dfs
@@ -64,6 +64,12 @@ def pyomoInput_matrixToDict(df, i_indexName, j_indexNames_list):
 ''' ============================
 Initialize df and filepath
 ============================ '''
+# scenario = "Batt_noConstraint11_20perTxCap_CambiumMidcase"
+# cambium_scen = 'Cambium22_Mid-case' ## 'Cambium22_Electrification'
+
+# scenResultsFolder = os.path.join(inputFolder, 'results/' + scenario)
+# if not os.path.exists(scenResultsFolder):
+    # os.makedirs(scenResultsFolder)
 
 # Create a df with column names
 output_df = pd.DataFrame(columns = ['PID', 'solar_capacity', 'wind_capacity', 'solar_wind_ratio', 'tx_capacity', 'batteryCap', 'batteryEnergy', 'revenue', 'cost', 'profit'])
@@ -74,7 +80,7 @@ seq = list(range(1, 1336))
 output_df['PID'] = seq
 
 # Set file path for model results csv
-output_df_path = os.path.join(inputFolder, 'model_results_test_ATB2023.csv')
+output_df_path = os.path.join(inputFolder, 'Pilot', 'pilot_1.csv')
 
 # Save df to csv 
 # output_df.to_csv(os.path.join(inputFolder, 'model_results.csv'), index = False)
@@ -123,6 +129,10 @@ def runOptimization(PID):
     capEx_s = 922*1000 # class 5, 2025
     # capEx_s = 620*1000 # class 5, 2030
 
+    # 2022 ATB advanced and moderate scenario
+    # capEx_w = (950+700)/2*1000 # class 5, 2030
+    # capEx_s = (752+618)/2*1000 # class 5, 2030
+
     # 2023 ATB advanced scenario
     # capEx_w = 1244*1000 # class 5, 2025
     # capEx_w = 1096*1000 # class 5, 2030
@@ -139,6 +149,10 @@ def runOptimization(PID):
     # 2022 ATB advanced scenario
     om_s = 17*1000 # class 5, 2025
     # om_s = 13*1000 # class 5, 2030
+    
+    # 2022 ATB advanced and moderate scenario
+    # om_w = (39+34)/2*1000 # class 5, 2030
+    # om_s = (13+15)/2*1000 # class 5, 2030
     
     # 2023 ATB advanced scenario
     # om_w = 27*1000 # class 5, 2025
@@ -314,7 +328,7 @@ def runOptimization(PID):
     model.batt_power_cost_future = Param(default = battPowerCostFuture)
     model.batt_energy_cost_future = Param(default = battEnergyCostFuture)
     model.batt_om_future = Param(default = battOMcostFuture)
-    model.duration_batt = Param(default = 6)
+    model.duration_batt = Param(default = 8)
 
     ''' ============================
     Set decision, slack, and battery variables
@@ -336,23 +350,23 @@ def runOptimization(PID):
     
     # # BATTERY VARIABLES ---
     # Maximum energy storage of battery
-    #model.duration_batt = Var(within = NonNegativeReals)
+    #model.duration_batt = Var(within=NonNegativeReals)
     # Maximum power of battery
-    model.P_batt_max = Var(within = NonNegativeReals)
+    model.P_batt_max = Var(within=NonNegativeReals)
     # Maximum energy of battery
-    model.E_batt_max = Var(within = NonNegativeReals)
+    model.E_batt_max = Var(within=NonNegativeReals)
     # charging power in time t
-    model.P_char_t = Var(model.HOURYEAR)
+    model.P_char_t = Var(model.HOURYEAR, within=NonNegativeReals)
     # discharging power in time t
-    model.P_dischar_t = Var(model.HOURYEAR)
+    model.P_dischar_t = Var(model.HOURYEAR, within=NonNegativeReals)
     # Energy of battery in time t
-    model.E_batt_t = Var(model.HOUR0YEAR, within = NonNegativeReals)
+    model.E_batt_t = Var(model.HOUR0YEAR, within=NonNegativeReals)
     # Losses while charging in time t
-    model.L_char_t = Var(model.HOURYEAR)
+    model.L_char_t = Var(model.HOURYEAR, within=NonNegativeReals)
     # Losses while discharging in time t
-    model.L_dischar_t = Var(model.HOURYEAR)
+    model.L_dischar_t = Var(model.HOURYEAR, within=NonNegativeReals)
     # Export of electricity to grid in time t
-    model.Export_t = Var(model.HOURYEAR)
+    model.Export_t = Var(model.HOURYEAR, within=NonNegativeReals)
 
     ''' ============================
     Define objective function
@@ -399,7 +413,7 @@ def runOptimization(PID):
                   ((model.P_batt_max * model.batt_power_cost_future + model.E_batt_max * model.batt_energy_cost_future) +\
                       (model.P_batt_max * model.batt_om_future / model.CRFbat))/ denom_batt # denominator needs to be reviewed
     model.lifetimeCosts = Constraint(rule = lifetimeCosts_rule)
-
+    
     ## Constraint (5) ---
     ## Ensure that capacity is less than or equal to potential for solar (equation #5)
     def max_capacity_solar_rule(model):
@@ -413,8 +427,8 @@ def runOptimization(PID):
         return model.revenue == sum(sum(model.Export_t[t, y] * model.eprice_wind[t, y] for t in model.t) for y in model.y)
     model.lifetimeRevenue = Constraint(rule = lifetimeRevenue_rule)
 
-    # # Constraint (7) ---
-    # # Check that transmission capacity is less than wind capacity 
+    # Constraint (7) ---
+    # Check that transmission capacity is less than wind capacity 
     # will always size tx capacity to wind capacity, never undersizes so could change tx_capacity == wind_capacity
     # def tx_wind_rule(model):
     #     return model.tx_capacity <= model.wind_capacity #+ model.solar_capacity
@@ -499,12 +513,11 @@ def runOptimization(PID):
         return model.E_batt_t[t,y] <= model.E_batt_max
     model.batt_chargeLessThanRated = Constraint(model.HOURYEAR, rule = batt_energyLessThanMaxRated_rule)
     
-    # CONSTRAINT (11 - BATTERY) --- 
-    # Maximum battery energy is equal to the battery duration times the maximum power of the battery
-    def batt_maxEnergy_rule(model):
-        return model.E_batt_max == model.P_batt_max * model.duration_batt
-    model.batt_maxEnergy = Constraint(rule = batt_maxEnergy_rule)
-
+    # # CONSTRAINT (11 - BATTERY) --- 
+    # # Maximum battery energy is equal to the battery duration times the maximum power of the battery
+    # def batt_maxEnergy_rule(model):
+    #     return model.E_batt_max == model.P_batt_max * model.duration_batt
+    # model.batt_maxEnergy = Constraint(rule = batt_maxEnergy_rule)
 
     ''' ============================
     Execute optimization
@@ -525,12 +538,33 @@ def runOptimization(PID):
     print(solar_wind_ratio)
 
     output_df.loc[output_df['PID']== PID] = [PID, solar_capacity, wind_capacity, solar_wind_ratio, tx_capacity, batteryCap, batteryEnergy, revenue, cost, profit]
-    # output_df.loc[output_df['PID']== PID] = [PID, solar_capacity, wind_capacity, solar_wind_ratio, tx_capacity, revenue, cost, profit]
 
-actualGen = model_instance.actualGen.extract_values()
-actualGen_df = pd.DataFrame.from_dict(actualGen, orient = 'index')
-actualGen_df_path = os.path.join(inputFolder, 'Pilot', 'model_results_test_actualGen.csv')
-actualGen_df.to_csv(actualGen_df_path, index = True)
+# actualGen = model_instance.actualGen.extract_values()
+# actualGen_df = pd.DataFrame.from_dict(actualGen, orient = "index")
+# actualGen_df_path = os.path.join(inputFolder, 'results/' + scenario + '/model_results_test_actualGen.csv')
+# actualGen_df.to_csv(actualGen_df_path, index = True)
+
+# potentialGen = model_instance.potentialGen.extract_values()
+# potentialGen_df = pd.DataFrame.from_dict(potentialGen, orient = "index")
+# potentialGen_df_path = os.path.join(inputFolder, 'results/' + scenario + '/model_results_test_potentialGen.csv')
+# potentialGen_df.to_csv(potentialGen_df_path, index = True)
+
+# output_df.to_csv(output_df_path, index = False)
+
+# export = model_instance.Export_t.extract_values()
+# export_df = pd.DataFrame.from_dict(export, orient = "index")
+# export_df_path = os.path.join(inputFolder, 'results/' + scenario + '/model_results_test_export.csv')
+# export_df.to_csv(export_df_path, index = True)
+
+# discharge = model_instance.P_dischar_t.extract_values()
+# discharge_df = pd.DataFrame.from_dict(discharge, orient = "index")
+# discharge_df_path = os.path.join(inputFolder, 'results/' + scenario + '/model_results_test_discharge.csv')
+# discharge_df.to_csv(discharge_df_path, index = True)
+
+# charge = model_instance.P_char_t.extract_values()
+# charge_df = pd.DataFrame.from_dict(charge, orient = "index")
+# charge_df_path = os.path.join(inputFolder, 'results/' + scenario + '/model_results_test_charge.csv')
+# charge_df.to_csv(charge_df_path, index = True)
 
 ''' ============================
 Define optimization function given a list 
@@ -565,7 +599,7 @@ Execute optimization loop
 ============================ '''
 
 PID_start = 1
-PID_end = PID_start + 1
+PID_end = PID_start + 20
 start_time = time.time()
 PID_list_in = list(range(PID_start, PID_end, 1))
 runOptimizationLoop(PID_list_in)  
