@@ -72,12 +72,13 @@ Initialize df and filepath
     # os.makedirs(scenResultsFolder)
 
 # Create a df with column names
-output_df = pd.DataFrame(columns = ['PID', 'solar_capacity', 'wind_capacity', 'solar_wind_ratio', 'tx_capacity', 'batteryCap', 'batteryEnergy', 'revenue', 'cost', 'profit'])
-# output_df = pd.DataFrame(columns = ['PID', 'solar_capacity', 'wind_capacity', 'solar_wind_ratio', 'tx_capacity', 'revenue', 'cost', 'profit'])
+output_df = pd.DataFrame(columns = ['PID', 'solar_capacity', 'wind_capacity', 'solar_wind_ratio', 'tx_capacity', 'batteryCap', 'batteryEnergy', 'revenue', 'cost', 'profit', 'pilot'])
 
 # Create sequence of PIDs (n=1335) and add to PID column
 seq = list(range(1, 1336))
 output_df['PID'] = seq
+pilot = 4
+output_df['pilot'] = pilot
 
 # Set file path for model results csv
 output_df_path = os.path.join(inputFolder, 'Pilot', 'pilot_4.csv')
@@ -121,45 +122,37 @@ def runOptimization(PID):
 
     # CAPITAL AND OPERATION & MAINTENANCE COSTS
     # Define capital expenditure for wind and solar (in USD/MW) 
-    # 2022 ATB advanced scenario
+    # 2022 ATB advanced scenario (2025)
     capEx_w = 1081*1000 # class 5, 2025
-    # capEx_w = 704*1000 # class 5, 2030
-    
-    # 2022 ATB advanced scenario
     capEx_s = 922*1000 # class 5, 2025
+    
+    # 2022 ATB advanced scenario (2030)
+    # capEx_w = 704*1000 # class 5, 2030
     # capEx_s = 620*1000 # class 5, 2030
 
-    # 2022 ATB advanced and moderate scenario
-    # capEx_w = (950+700)/2*1000 # class 5, 2030
-    # capEx_s = (752+618)/2*1000 # class 5, 2030
-
-    # 2023 ATB advanced scenario
+    # 2023 ATB advanced scenario (2025)
     # capEx_w = 1244*1000 # class 5, 2025
-    # capEx_w = 1096*1000 # class 5, 2030
-
-    # 2023 ATB advanced scenario
     # capEx_s = 1202*1000 # class 5, 2025
+
+    # 2023 ATB advanced scenario (2030)
+    # capEx_w = 1096*1000 # class 5, 2030
     # capEx_s = 917*1000 # class 5, 2030
     
     # Define operations & maintenance costs for wind and solar (in USD/MW/yr)
-    # 2022 ATB advanced scenario
+    # 2022 ATB advanced scenario (2025)
     om_w = 39*1000 # class 5, 2025
-    # om_w = 34*1000 # class 5, 2030
-
-    # 2022 ATB advanced scenario
     om_s = 17*1000 # class 5, 2025
+    
+    # 2022 ATB advanced scenario (2030)
+    # om_w = 34*1000 # class 5, 2030
     # om_s = 13*1000 # class 5, 2030
     
-    # 2022 ATB advanced and moderate scenario
-    # om_w = (39+34)/2*1000 # class 5, 2030
-    # om_s = (13+15)/2*1000 # class 5, 2030
-    
-    # 2023 ATB advanced scenario
+    # 2023 ATB advanced scenario (2025)
     # om_w = 27*1000 # class 5, 2025
-    # om_w = 24*1000 # class 5, 2030
-    
-    # 2023 ATB advanced scenario
     # om_s = 20*1000 # class 5, 2025
+    
+    # 2023 ATB advanced scenario (2030)
+    # om_w = 24*1000 # class 5, 2030
     # om_s = 16*1000 # class 5, 2030
     
     # BATTERY CAPITAL COSTS 
@@ -537,7 +530,7 @@ def runOptimization(PID):
     batteryEnergy = model_instance.E_batt_max.value
     print(solar_wind_ratio)
 
-    output_df.loc[output_df['PID']== PID] = [PID, solar_capacity, wind_capacity, solar_wind_ratio, tx_capacity, batteryCap, batteryEnergy, revenue, cost, profit]
+    output_df.loc[output_df['PID']== PID] = [PID, solar_capacity, wind_capacity, solar_wind_ratio, tx_capacity, batteryCap, batteryEnergy, revenue, cost, profit, pilot]
 
 # actualGen = model_instance.actualGen.extract_values()
 # actualGen_df = pd.DataFrame.from_dict(actualGen, orient = "index")
