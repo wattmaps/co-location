@@ -16,7 +16,7 @@ start_time = time.time()
 current_dir = os.getcwd()
 print(current_dir)
 
-current_dir = "/Users/grace/Documents/Wattmaps/co-location"
+# current_dir = '/Users/grace/Documents/Wattmaps/co-location'
 inputFolder = os.path.join(current_dir, 'data')
 
 ''' ============================
@@ -66,18 +66,19 @@ Initialize df and filepath
 ============================ '''
 
 # Create a df with column names
-#output_df = pd.DataFrame(columns = ['PID', 'solar_capacity', 'wind_capacity', 'solar_wind_ratio', 'tx_capacity', 'batteryCap', 'batteryEnergy', 'revenue', 'cost', 'profit'])
-output_df = pd.DataFrame(columns = ['PID', 'solar_capacity', 'wind_capacity', 'solar_wind_ratio', 'tx_capacity', 'revenue', 'cost', 'profit'])
-
+output_df = pd.DataFrame(columns = ['PID', 'solar_capacity', 'wind_capacity', 'solar_wind_ratio', 'tx_capacity', 'batteryCap', 'batteryEnergy', 'revenue', 'cost', 'profit'])
+# output_df = pd.DataFrame(columns = ['PID', 'solar_capacity', 'wind_capacity', 'solar_wind_ratio', 'tx_capacity', 'revenue', 'cost', 'profit'])
 
 # Create sequence of PIDs (n=1335) and add to PID column
 seq = list(range(1, 1336))
 output_df['PID'] = seq
 
+# Set file path for model results csv
+output_df_path = os.path.join(inputFolder, 'model_results_test_ATB2023.csv')
+
 # Save df to csv 
 # output_df.to_csv(os.path.join(inputFolder, 'model_results.csv'), index = False)
-
-output_df_path = os.path.join(inputFolder, 'model_results_test.csv')
+# Read df from csv
 # output_df = pd.read_csv(output_df_path, engine = 'python')
 
 ''' ============================
@@ -113,35 +114,54 @@ def runOptimization(PID):
     ============================ '''
 
     # CAPITAL AND OPERATION & MAINTENANCE COSTS
-    # Define capital expenditure for wind and solar (in USD/MW) ## updated using 2023 ATB and 2025 moderate scenario
-    capEx_w = 1268*1000 ## class 5, moderate, 2025
-    capEx_w = 1150*1000 ## class 5, moderate, 2030
-    capEx_s = 1248*1000 ## class 5, moderate, 2025
-    capEx_s = 1038*1000## class 5, moderate, 2030
+    # Define capital expenditure for wind and solar (in USD/MW) 
+    # 2022 ATB advanced scenario
+    capEx_w = 1081*1000 # class 5, 2025
+    # capEx_w = 704*1000 # class 5, 2030
     
-    ## use old capex values (class 5, 2030, from 2022 ATB)
-    capEx_w = (950+700)/2*1000 
-    capEx_s = (752+618)/2*1000 
+    # 2022 ATB advanced scenario
+    capEx_s = 922*1000 # class 5, 2025
+    # capEx_s = 620*1000 # class 5, 2030
+
+    # 2023 ATB advanced scenario
+    # capEx_w = 1244*1000 # class 5, 2025
+    # capEx_w = 1096*1000 # class 5, 2030
+
+    # 2023 ATB advanced scenario
+    # capEx_s = 1202*1000 # class 5, 2025
+    # capEx_s = 917*1000 # class 5, 2030
     
     # Define operations & maintenance costs for wind and solar (in USD/MW/yr)
-    om_w = 28.8*1000 
-    om_w = 27*1000  ## class 4, moderate, 2030
-    om_s = 20.5*1000 
-    om_s = 18*1000 ## class 5, moderate, 2030
+    # 2022 ATB advanced scenario
+    om_w = 39*1000 # class 5, 2025
+    # om_w = 34*1000 # class 5, 2030
+
+    # 2022 ATB advanced scenario
+    om_s = 17*1000 # class 5, 2025
+    # om_s = 13*1000 # class 5, 2030
     
-    ## old om values (class 5, 2030, from 2022 ATB)
-    om_w = (39+34)/2*1000 
-    om_s = (13+15)/2*1000 
+    # 2023 ATB advanced scenario
+    # om_w = 27*1000 # class 5, 2025
+    # om_w = 24*1000 # class 5, 2030
     
-    ## Define capital costs for battery 
-    battPowerCost =  288*1000 # in USD/MW for moderate in 2025
-    battEnergyCost = 287*1000 # in USD/MWh for moderate in 2025
-    battOMcost = 50*1000 # in USD/MW-year for 6 hr moderate in 2025
-    battPowerCostFuture =  280*1000 # in USD/MW for moderate in 2037
-    battEnergyCostFuture = 199*1000 # in USD/MWh for moderate in 2037
-    battOMcostFuture = 37*1000 # in USD/MW-year for 6 hr moderate in 2037
+    # 2023 ATB advanced scenario
+    # om_s = 20*1000 # class 5, 2025
+    # om_s = 16*1000 # class 5, 2030
     
-    ## Battery efficiency
+    # BATTERY CAPITAL COSTS 
+    # Define capital cost for battery (in USD/MW), for moderate in 2025
+    battPowerCost =  288*1000
+    # Define energy cost (in USD/MWh), for moderate in 2025
+    battEnergyCost = 287*1000
+    # Define operations & maintenance cost for battery (in USD/MW-year), for 6 hr moderate in 2025
+    battOMcost = 50*1000
+    # Define capital future cost for battery (in USD/MW), for moderate in 2037
+    battPowerCostFuture =  280*1000
+    # Define energy future cost for battery (in USD/MWh), for moderate in 2037
+    battEnergyCostFuture = 199*1000
+    # Define operations & maintenance future cost for battery (in USD/MW-year), for 6 hr moderate in 2037
+    battOMcostFuture = 37*1000
+    # Define battery efficiency
     rtEfficiency_sqrt = sqrt(0.85)
 
     # CAPITAL RECOVERY FACTOR
@@ -149,11 +169,12 @@ def runOptimization(PID):
     d = 0.04 
     # Define number of years for capital recovery factor
     n = 25
-    n_bat = 12.5 # life of battery
+    # Define life of battery
+    n_bat = 12.5
     # Define capital recovery factor (scalar)
     CRF = (d*(1+d)**n)/((1+d)**n - 1)
     CRFbat = (d*(1+d)**n_bat)/((1+d)**n_bat - 1)
-    ## denominator of battery 
+    # Define denominator of battery 
     denom_batt = (1 + d)**n_bat
 
     # TRANSMISSION AND SUBSTATION COSTS
@@ -178,6 +199,9 @@ def runOptimization(PID):
     # Define associated transmission substations capacity in MW
     ## size to wind capacity * certain percentage
     tx_MW = cap_w * 1.0
+    # tx_MW = cap_w * 1.2
+    # tx_MW = cap_w * 1.5
+
     # if cap_w <= 100:
     #     tx_MW = cap_w 
     # else:
@@ -193,6 +217,9 @@ def runOptimization(PID):
 
     # Set filepath where wholesale electricity prices are for each GEA
     ePrice_df_folder = os.path.join(inputFolder, 'Cambium22_Electrification', 'Cash_Flow')
+     # ePrice_df_folder = os.path.join(inputFolder, 'Cambium22_Electrification', 'Cash_Flow_PTC_No_Phaseout')
+     # ePrice_df_folder = os.path.join(inputFolder, 'Cambium22_Mid-case', 'Cash_Flow')
+     # ePrice_df_folder = os.path.join(inputFolder, 'Cambium22_Mid-case', 'Cash_Flow_PTC_No_Phaseout')
     ePrice_path = os.path.join(ePrice_df_folder, f'cambiumHourly_{gea}.csv')
     ePrice_df_wind = pd.read_csv(ePrice_path)
 
@@ -200,14 +227,10 @@ def runOptimization(PID):
     cf_s_path = os.path.join(inputFolder, 'SAM', 'Solar_Capacity_Factors', f'capacity_factor_PID{PID}.csv')
     # cf_s_path = inputFolder + '/PID1_CF_Wide_Matrix' + '/SOLAR_capacity_factor_PID' + str(PID) + '.csv'
     cf_s_df = pd.read_csv(cf_s_path)
-    ## subset to only the capacity factor column
-    # cf_only_s_df = cf_s_df.loc[:,'energy_generation']
 
     cf_w_path = os.path.join(inputFolder, 'SAM', 'Wind_Capacity_Factors', f'capacity_factor_PID{PID}.csv')
     # cf_w_path = inputFolder + '/PID1_CF_Wide_Matrix' + '/WIND_capacity_factor_PID' + str(PID) + '.csv'
     cf_w_df = pd.read_csv(cf_w_path)
-    ## subset to only the capacity factor column
-    # cf_only_w_df = cf_w_df.loc[:,'energy_generation']
     
     ''' ============================
     Initialize model
@@ -253,41 +276,21 @@ def runOptimization(PID):
     ============================ '''
 
     ## ELECTRICITY PRICES ---
-    # Electricity prices for wind and solar
-    # ePrice_wind_hourly = next(iter(pyomoInput_dfVectorToDict(ePrice_df_wind, 'hour', hour).values()))
-    # ePrice_solar_hourly = next(iter(pyomoInput_dfVectorToDict(ePrice_df_wind, 'hour', hour).values()))
-
-    ## Adapted from wind_zones_v2 script
+    # Extract electricity prices for wind and solar from matrix
     ePrice_wind_hourly = pyomoInput_matrixToDict(ePrice_df_wind, 'hour', year_char)
-    #ePrice_solar_hourly = next(iter(pyomoInput_matrixToDict(ePrice_df_wind, 'hour', year)))
-
     ePrice_wind_hourly[1, str(year[0])]
 
-    # Set parameter
-    # model.eprice_wind = Param(model.t, default = ePrice_wind_hourly) # price of wind at each hour
-    # model.eprice_solar = Param(model.t, default = ePrice_solar_hourly) # price of solar at each hour
-
-    ## Adapted from wind_zones_v2 script
-    model.eprice_wind = Param(model.HOURYEAR, default = ePrice_wind_hourly) # price of wind at each hour
-    #model.eprice_solar = Param(model.HOURYEAR, default = ePrice_solar_hourly) # price of solar at each hour
-
+    # Set parameter for price of wind and solar at each hour
+    model.eprice_wind = Param(model.HOURYEAR, default = ePrice_wind_hourly)
+    
     ## CAPACITY FACTORS ---
-    # Extract wind capacity factor as vector
-    # wind_cf_hourly = next(iter(pyomoInput_dfVectorToDict(cf_only_w_df, 'hour', hour).values()))
-    # Set parameter
-    # model.cf_wind = Param(model.t, default = wind_cf_hourly)
-
-    # Extract solar capacity factor as vector
-    # solar_cf_hourly = next(iter(pyomoInput_dfVectorToDict(cf_only_s_df, 'hour', hour).values()))
-    # Set parameter
-    # model.cf_solar = Param(model.t, default = solar_cf_hourly)
-
-    ## Adapted from wind_zones_v2 script
+    # Extract solar capacity factor from matrix
     wind_cf_hourly = pyomoInput_matrixToDict(cf_w_df, 'hour', year_char)
     solar_cf_hourly = pyomoInput_matrixToDict(cf_s_df, 'hour', year_char)
-    #solar_cf_hourly = next(iter(pyomoInput_matrixToDict(cf_s_df, 'csv', 'hour', year)))
 
+    # Set wind parameter
     model.cf_wind = Param(model.HOURYEAR, default = wind_cf_hourly)
+    # Set solar parameter
     model.cf_solar = Param(model.HOURYEAR, default = solar_cf_hourly)
 
     ''' ============================
@@ -333,17 +336,17 @@ def runOptimization(PID):
     
     # # BATTERY VARIABLES ---
     # Maximum energy storage of battery
-    #model.duration_batt = Var(within=NonNegativeReals)
+    #model.duration_batt = Var(within = NonNegativeReals)
     # Maximum power of battery
-    model.P_batt_max = Var(within=NonNegativeReals)
+    model.P_batt_max = Var(within = NonNegativeReals)
     # Maximum energy of battery
-    model.E_batt_max = Var(within=NonNegativeReals)
+    model.E_batt_max = Var(within = NonNegativeReals)
     # charging power in time t
     model.P_char_t = Var(model.HOURYEAR)
     # discharging power in time t
     model.P_dischar_t = Var(model.HOURYEAR)
     # Energy of battery in time t
-    model.E_batt_t = Var(model.HOUR0YEAR, within=NonNegativeReals)
+    model.E_batt_t = Var(model.HOUR0YEAR, within = NonNegativeReals)
     # Losses while charging in time t
     model.L_char_t = Var(model.HOURYEAR)
     # Losses while discharging in time t
@@ -396,7 +399,6 @@ def runOptimization(PID):
                   ((model.P_batt_max * model.batt_power_cost_future + model.E_batt_max * model.batt_energy_cost_future) +\
                       (model.P_batt_max * model.batt_om_future / model.CRFbat))/ denom_batt # denominator needs to be reviewed
     model.lifetimeCosts = Constraint(rule = lifetimeCosts_rule)
-    
 
     ## Constraint (5) ---
     ## Ensure that capacity is less than or equal to potential for solar (equation #5)
@@ -523,11 +525,11 @@ def runOptimization(PID):
     print(solar_wind_ratio)
 
     output_df.loc[output_df['PID']== PID] = [PID, solar_capacity, wind_capacity, solar_wind_ratio, tx_capacity, batteryCap, batteryEnergy, revenue, cost, profit]
-    #output_df.loc[output_df['PID']== PID] = [PID, solar_capacity, wind_capacity, solar_wind_ratio, tx_capacity, revenue, cost, profit]
+    # output_df.loc[output_df['PID']== PID] = [PID, solar_capacity, wind_capacity, solar_wind_ratio, tx_capacity, revenue, cost, profit]
 
 actualGen = model_instance.actualGen.extract_values()
-actualGen_df = pd.DataFrame.from_dict(actualGen, orient = "index")
-actualGen_df_path = os.path.join(inputFolder, 'model_results_test_actualGen.csv')
+actualGen_df = pd.DataFrame.from_dict(actualGen, orient = 'index')
+actualGen_df_path = os.path.join(inputFolder, 'Pilot', 'model_results_test_actualGen.csv')
 actualGen_df.to_csv(actualGen_df_path, index = True)
 
 ''' ============================
