@@ -80,7 +80,7 @@ seq = list(range(1, 1336))
 output_df['PID'] = seq
 
 # Set file path for model results csv
-output_df_path = os.path.join(inputFolder, 'Pilot', 'pilot_2.csv')
+output_df_path = os.path.join(inputFolder, 'Pilot', 'pilot_4.csv')
 
 # Save df to csv 
 # output_df.to_csv(os.path.join(inputFolder, 'model_results.csv'), index = False)
@@ -232,8 +232,8 @@ def runOptimization(PID):
     # Set filepath where wholesale electricity prices are for each GEA
     # ePrice_df_folder = os.path.join(inputFolder, 'Cambium22_Electrification', 'Cash_Flow')
     # ePrice_df_folder = os.path.join(inputFolder, 'Cambium22_Electrification', 'Cash_Flow_PTC_No_Phaseout')
-    ePrice_df_folder = os.path.join(inputFolder, 'Cambium22_Mid-case', 'Cash_Flow')
-    # ePrice_df_folder = os.path.join(inputFolder, 'Cambium22_Mid-case', 'Cash_Flow_PTC_No_Phaseout')
+    # ePrice_df_folder = os.path.join(inputFolder, 'Cambium22_Mid-case', 'Cash_Flow')
+    ePrice_df_folder = os.path.join(inputFolder, 'Cambium22_Mid-case', 'Cash_Flow_PTC_No_Phaseout')
     ePrice_path = os.path.join(ePrice_df_folder, f'cambiumHourly_{gea}.csv')
     ePrice_df_wind = pd.read_csv(ePrice_path)
 
@@ -328,7 +328,7 @@ def runOptimization(PID):
     model.batt_power_cost_future = Param(default = battPowerCostFuture)
     model.batt_energy_cost_future = Param(default = battEnergyCostFuture)
     model.batt_om_future = Param(default = battOMcostFuture)
-    model.duration_batt = Param(default = 8)
+    # model.duration_batt = Param(default = 8)
 
     ''' ============================
     Set decision, slack, and battery variables
