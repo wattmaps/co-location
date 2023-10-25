@@ -80,7 +80,7 @@ seq = list(range(1, 1336))
 output_df['PID'] = seq
 
 # Set file path for model results csv
-output_df_path = os.path.join(inputFolder, 'Pilot', 'pilot_1.csv')
+output_df_path = os.path.join(inputFolder, 'Pilot', 'pilot_2.csv')
 
 # Save df to csv 
 # output_df.to_csv(os.path.join(inputFolder, 'model_results.csv'), index = False)
@@ -230,10 +230,10 @@ def runOptimization(PID):
     gea = pid_gea_df.loc[pid_gea_df['PID'] == PID, 'gea'].values[0]
 
     # Set filepath where wholesale electricity prices are for each GEA
-    ePrice_df_folder = os.path.join(inputFolder, 'Cambium22_Electrification', 'Cash_Flow')
-     # ePrice_df_folder = os.path.join(inputFolder, 'Cambium22_Electrification', 'Cash_Flow_PTC_No_Phaseout')
-     # ePrice_df_folder = os.path.join(inputFolder, 'Cambium22_Mid-case', 'Cash_Flow')
-     # ePrice_df_folder = os.path.join(inputFolder, 'Cambium22_Mid-case', 'Cash_Flow_PTC_No_Phaseout')
+    # ePrice_df_folder = os.path.join(inputFolder, 'Cambium22_Electrification', 'Cash_Flow')
+    # ePrice_df_folder = os.path.join(inputFolder, 'Cambium22_Electrification', 'Cash_Flow_PTC_No_Phaseout')
+    ePrice_df_folder = os.path.join(inputFolder, 'Cambium22_Mid-case', 'Cash_Flow')
+    # ePrice_df_folder = os.path.join(inputFolder, 'Cambium22_Mid-case', 'Cash_Flow_PTC_No_Phaseout')
     ePrice_path = os.path.join(ePrice_df_folder, f'cambiumHourly_{gea}.csv')
     ePrice_df_wind = pd.read_csv(ePrice_path)
 
@@ -599,7 +599,7 @@ Execute optimization loop
 ============================ '''
 
 PID_start = 1
-PID_end = PID_start + 20
+PID_end = PID_start + 10
 start_time = time.time()
 PID_list_in = list(range(PID_start, PID_end, 1))
 runOptimizationLoop(PID_list_in)  
