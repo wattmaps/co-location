@@ -77,11 +77,11 @@ output_df = pd.DataFrame(columns = ['PID', 'solar_capacity', 'wind_capacity', 's
 # Create sequence of PIDs (n=1335) and add to PID column
 seq = list(range(1, 1336))
 output_df['PID'] = seq
-pilot = 4
+pilot = 7
 output_df['pilot'] = pilot
 
 # Set file path for model results csv
-output_df_path = os.path.join(inputFolder, 'Pilot', 'pilot_4.csv')
+output_df_path = os.path.join(inputFolder, 'Pilot', 'pilot_7.csv')
 
 # Save df to csv 
 # output_df.to_csv(os.path.join(inputFolder, 'model_results.csv'), index = False)
@@ -123,12 +123,12 @@ def runOptimization(PID):
     # CAPITAL AND OPERATION & MAINTENANCE COSTS
     # Define capital expenditure for wind and solar (in USD/MW) 
     # 2022 ATB advanced scenario (2025)
-    capEx_w = 1081*1000 # class 5, 2025
-    capEx_s = 922*1000 # class 5, 2025
+    # capEx_w = 1081*1000 # class 5, 2025
+    # capEx_s = 922*1000 # class 5, 2025
     
     # 2022 ATB advanced scenario (2030)
-    # capEx_w = 704*1000 # class 5, 2030
-    # capEx_s = 620*1000 # class 5, 2030
+    capEx_w = 704*1000 # class 5, 2030
+    capEx_s = 620*1000 # class 5, 2030
 
     # 2023 ATB advanced scenario (2025)
     # capEx_w = 1244*1000 # class 5, 2025
@@ -224,9 +224,9 @@ def runOptimization(PID):
 
     # Set filepath where wholesale electricity prices are for each GEA
     # ePrice_df_folder = os.path.join(inputFolder, 'Cambium22_Electrification', 'Cash_Flow')
-    # ePrice_df_folder = os.path.join(inputFolder, 'Cambium22_Electrification', 'Cash_Flow_PTC_No_Phaseout')
     # ePrice_df_folder = os.path.join(inputFolder, 'Cambium22_Mid-case', 'Cash_Flow')
-    ePrice_df_folder = os.path.join(inputFolder, 'Cambium22_Mid-case', 'Cash_Flow_PTC_No_Phaseout')
+    ePrice_df_folder = os.path.join(inputFolder, 'Cambium22_Electrification', 'Cash_Flow_PTC_No_Phaseout')
+    # ePrice_df_folder = os.path.join(inputFolder, 'Cambium22_Mid-case', 'Cash_Flow_PTC_No_Phaseout')
     ePrice_path = os.path.join(ePrice_df_folder, f'cambiumHourly_{gea}.csv')
     ePrice_df_wind = pd.read_csv(ePrice_path)
 
