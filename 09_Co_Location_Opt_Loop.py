@@ -77,11 +77,11 @@ output_df = pd.DataFrame(columns = ['PID', 'solar_capacity', 'wind_capacity', 's
 # Create sequence of PIDs (n=1335) and add to PID column
 seq = list(range(1, 1336))
 output_df['PID'] = seq
-pilot = 7
+pilot = 5
 output_df['pilot'] = pilot
 
 # Set file path for model results csv
-output_df_path = os.path.join(inputFolder, 'Pilot', 'pilot_7.csv')
+output_df_path = os.path.join(inputFolder, 'Pilot', 'pilot_5.csv')
 
 # Save df to csv 
 # output_df.to_csv(os.path.join(inputFolder, 'model_results.csv'), index = False)
@@ -140,12 +140,12 @@ def runOptimization(PID):
     
     # Define operations & maintenance costs for wind and solar (in USD/MW/yr)
     # 2022 ATB advanced scenario (2025)
-    om_w = 39*1000 # class 5, 2025
-    om_s = 17*1000 # class 5, 2025
+    # om_w = 39*1000 # class 5, 2025
+    # om_s = 17*1000 # class 5, 2025
     
     # 2022 ATB advanced scenario (2030)
-    # om_w = 34*1000 # class 5, 2030
-    # om_s = 13*1000 # class 5, 2030
+    om_w = 34*1000 # class 5, 2030
+    om_s = 13*1000 # class 5, 2030
     
     # 2023 ATB advanced scenario (2025)
     # om_w = 27*1000 # class 5, 2025
@@ -209,11 +209,6 @@ def runOptimization(PID):
     # tx_MW = cap_w * 1.2
     # tx_MW = cap_w * 1.5
 
-    # if cap_w <= 100:
-    #     tx_MW = cap_w 
-    # else:
-    #     tx_MW = pid_substation_df.loc[pid_substation_df['PID'] == PID, 'substation_mw'].values[0]
-
     ''' ============================
     Set vector parameters
     ============================ '''
@@ -223,9 +218,9 @@ def runOptimization(PID):
     gea = pid_gea_df.loc[pid_gea_df['PID'] == PID, 'gea'].values[0]
 
     # Set filepath where wholesale electricity prices are for each GEA
-    # ePrice_df_folder = os.path.join(inputFolder, 'Cambium22_Electrification', 'Cash_Flow')
+    ePrice_df_folder = os.path.join(inputFolder, 'Cambium22_Electrification', 'Cash_Flow')
     # ePrice_df_folder = os.path.join(inputFolder, 'Cambium22_Mid-case', 'Cash_Flow')
-    ePrice_df_folder = os.path.join(inputFolder, 'Cambium22_Electrification', 'Cash_Flow_PTC_No_Phaseout')
+    # ePrice_df_folder = os.path.join(inputFolder, 'Cambium22_Electrification', 'Cash_Flow_PTC_No_Phaseout')
     # ePrice_df_folder = os.path.join(inputFolder, 'Cambium22_Mid-case', 'Cash_Flow_PTC_No_Phaseout')
     ePrice_path = os.path.join(ePrice_df_folder, f'cambiumHourly_{gea}.csv')
     ePrice_df_wind = pd.read_csv(ePrice_path)
