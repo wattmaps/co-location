@@ -159,19 +159,19 @@ def runOptimization(PID):
     # om_w = 24*1000 # class 5, 2030
     # om_s = 16*1000 # class 5, 2030
     
-    # BATTERY CAPITAL COSTS 
-    # Define capital cost for battery (in USD/MW), for moderate in 2025
-    battPowerCost =  288*1000
-    # Define energy cost (in USD/MWh), for moderate in 2025
-    battEnergyCost = 287*1000
-    # Define operations & maintenance cost for battery (in USD/MW-year), for 6 hr moderate in 2025
-    battOMcost = 50*1000
-    # Define capital future cost for battery (in USD/MW), for moderate in 2037
-    battPowerCostFuture =  280*1000
-    # Define energy future cost for battery (in USD/MWh), for moderate in 2037
-    battEnergyCostFuture = 199*1000
-    # Define operations & maintenance future cost for battery (in USD/MW-year), for 6 hr moderate in 2037
-    battOMcostFuture = 37*1000
+    # BATTERY CAPITAL COSTS (2022 ATB)
+    # Define capital cost for battery (in USD/MW), for advanced in 2025
+    battPowerCost =  162*1000
+    # Define energy cost (in USD/MWh), for advanced in 2025
+    battEnergyCost = 211*1000
+    # Define operations & maintenance cost for battery (in USD/MW-year), for 6 hr advanced in 2025
+    battOMcost = 36*1000
+    # Define capital future cost for battery (in USD/MW), for advanced in 2037
+    battPowerCostFuture =  100*1000
+    # Define energy future cost for battery (in USD/MWh), for advanced in 2037
+    battEnergyCostFuture = 130*1000
+    # Define operations & maintenance future cost for battery (in USD/MW-year), for 6 hr advanced in 2037
+    battOMcostFuture = 22*1000
     # Define battery efficiency
     rtEfficiency_sqrt = sqrt(0.85)
 
