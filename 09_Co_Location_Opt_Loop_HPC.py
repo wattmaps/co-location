@@ -84,10 +84,11 @@ Retrieve system arguments
 cambium_scen = sys.argv[1] ## should be either 'Cambium22Electrification' or "Cambium22Midcase"
 PTC_scen = sys.argv[2] ## should be either "NoPhaseout" or "YesPhaseout"
 ATBreleaseYr_scen = sys.argv[3] ## should be either 2022 or 2023
-ATBcapexYr_scen = sys.argv[4] ## should be either "2025" or "2030"
-tx_scen = sys.argv[5] ## should be either "100" or "120"
-scen_num = sys.argv[6]
-scenario_filename = cambium_scen + "_" + PTC_scen + "_" + ATBcapexYr_scen + "_" + tx_scen + "_" + scen_num + ".csv"
+ATBcost_scen = sys.argv[4] ## should be advanced or moderate
+ATBcapexYr_scen = sys.argv[5] ## should be either "2025" or "2030"
+tx_scen = sys.argv[6] ## should be either "100" or "120"
+scen_num = sys.argv[7]
+scenario_filename = cambium_scen + "_" + PTC_scen + "_" + ATBreleaseYr_scen + "_" + ATBcost_scen + "_" + ATBcapexYr_scen + "_" + tx_scen + "_" + scen_num + ".csv"
 
 # Create sequence of PIDs (n=1335) and add to PID column
 seq = list(range(1, 1336))
