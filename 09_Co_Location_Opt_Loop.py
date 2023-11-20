@@ -80,6 +80,10 @@ output_df = pd.DataFrame(columns = ['PID', 'solar_capacity', 'wind_capacity', 's
 
 # Create sequence of PIDs (n=1335) and add to PID column
 seq = list(range(1, 1336))
+
+# seq = open(inputFolder, 'uswtdb', 'pids_15_MW.txt')
+# seq = open(inputFolder, 'uswtdb', 'pids_20_MW.txt')
+
 output_df['PID'] = seq
 pilot = 36
 output_df['pilot'] = pilot
