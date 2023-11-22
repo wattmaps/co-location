@@ -25,6 +25,10 @@ print(current_dir)
 #current_dir = "/Users/grace/Documents/Wattmaps/co-location"
 inputFolder = os.path.join(current_dir, 'data')
 
+## Use specific PIDS
+#seq = open(os.path.join(inputFolder, 'uswtdb', 'pids_20_MW.txt'))
+seq = pd.read_csv(os.path.join(inputFolder, 'uswtdb', 'pids_15_MW.txt'))
+
 ''' ============================
 Setup parallel processing
 ============================ '''
@@ -47,10 +51,13 @@ def chunks(lst, n):
     for i in range(0, len(lst), n):
         yield lst[i:i + n]
 
-n_PIDs = 1334
-PID_start = 1
-PID_end = PID_start + n_PIDs
-PID_list_in = list(range(PID_start, PID_end, 1))
+# n_PIDs = 1334
+# PID_start = 1
+# PID_end = PID_start + n_PIDs
+# PID_list_in = list(range(PID_start, PID_end, 1))
+
+PID_list_in = seq['x'].tolist()
+n_PIDs = len(seq)
 iter_length = floor(n_PIDs/(N_jobs-1))
 
 list_batch = list(chunks(PID_list_in, iter_length))
@@ -133,8 +140,9 @@ scenario_filename_combined = cambium_scen + "_" + PTC_scen + "_" + ATBreleaseYr_
 #seq = list(range(1, 1336))
 #output_df['PID'] = seq
 
-if not os.path.exists(os.path.join(current_dir, 'results', 'HPCscenarios', scenario_foldername_iter)):
-    os.makedirs(os.path.join(current_dir, 'results', 'HPCscenarios', scenario_foldername_iter))
+# if not os.path.exists(os.path.join(current_dir, 'results', 'HPCscenarios', scenario_foldername_iter)):
+#     print("Creating results folder")
+#     os.makedirs(os.path.join(current_dir, 'results', 'HPCscenarios', scenario_foldername_iter))
 
 # Set file path for model results csv
 output_df_path_iterations = os.path.join(current_dir, 'results', 'HPCscenarios', scenario_foldername_iter, scenario_filename_iter)
