@@ -661,7 +661,7 @@ def runOptimization(PID, output_df_arg):
     Execute optimization
     ============================ '''
     model_instance = model.create_instance()
-    results = opt.solve(model_instance, tee = True)
+    results = opt.solve(model_instance, tee = False)
 
     # Store variable values from optimization
     solar_capacity = model_instance.solar_capacity.value
