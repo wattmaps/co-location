@@ -98,6 +98,7 @@ ATBcapexYr_scen = sys.argv[5] ## should be either "2025" or "2030"
 tx_scen = sys.argv[6] ## should be either "100" or "120"
 scen_num = sys.argv[7]
 mode = sys.argv[8] ## should be either "initial" or "backfill"
+backfillNum = sys.argv[9]
 
 
 ''' ============================
@@ -174,7 +175,7 @@ list_batch_iter = list_batch[i_job]
 
 if mode == "backfill":
     ## add 10 to the job number to avoid overwriting the existing results
-    i_job = (i_job + 1) * 100
+    i_job = (i_job + 1) * 100**(int(backfillNum))
     ## update the combined csv filename to include only the backfilled PIDs and avoid overwriting the initial csv output
     scenario_filename_combined = scenario_filename_combined[:-4] + "_backfill.csv"
     output_df_path = os.path.join(current_dir, 'results', 'HPCscenarios', scenario_filename_combined)
