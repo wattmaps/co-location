@@ -775,30 +775,30 @@ output_df_complete = runOptimizationLoop(list_batch_iter, output_df)
 print("** Completed iteration ", str(i_job), "with filename ", output_df_path_iterations)
 print("**** Completed loop for PID starting with", str(list_batch_iter[0]), "and ending with", str(list_batch_iter[-1]))
 
-## wait for all jobs to be completed
-comm.Barrier()
-if i_job == 0:
-    # # Receive job sent by the other non-master processes 
-    # all_output_df_complete = [output_df_complete] + [comm.recv(source = i, tag = 11) for i in range(1, N_jobs)]
-    # ## combine results into a single dataframe 
-    # all_output_df_complete = pd.concat(all_output_df_complete, axis = 0)
-    ## save results to csv
-    # all_output_df_complete.to_csv(output_df_path)
+# ## wait for all jobs to be completed
+# comm.Barrier()
+# if i_job == 0:
+#     # # Receive job sent by the other non-master processes 
+#     # all_output_df_complete = [output_df_complete] + [comm.recv(source = i, tag = 11) for i in range(1, N_jobs)]
+#     # ## combine results into a single dataframe 
+#     # all_output_df_complete = pd.concat(all_output_df_complete, axis = 0)
+#     ## save results to csv
+#     # all_output_df_complete.to_csv(output_df_path)
     
-    ## ## combine csvs into one
-    print("Concatenating iterations into one csv and save to drive")
-    all_csvs_iter = glob.glob(os.path.join(output_df_path_iterationsFolder, "*.csv"))
-    combined_df = pd.concat((pd.read_csv(f) for f in all_csvs_iter), axis = 0, ignore_index=True)
-    combined_df.to_csv(output_df_path)
+#     ## ## combine csvs into one
+#     print("Concatenating iterations into one csv and save to drive")
+#     all_csvs_iter = glob.glob(os.path.join(output_df_path_iterationsFolder, "*.csv"))
+#     combined_df = pd.concat((pd.read_csv(f) for f in all_csvs_iter), axis = 0, ignore_index=True)
+#     combined_df.to_csv(output_df_path)
     
-    ## produce list of PIDs that are still missing/yet to be run
-    missingPIDs_list = list(set(seq['x'].tolist()) - set(combined_df['PID'].tolist()))
-    print("Missing PIDs:", missingPIDs_list)
-    missingPIDs_df = pd.DataFrame(missingPIDs_list, columns=['missingPIDs'])
-    missingPIDs_df.to_csv(output_df_path_missingPIDs)
+#     ## produce list of PIDs that are still missing/yet to be run
+#     missingPIDs_list = list(set(seq['x'].tolist()) - set(combined_df['PID'].tolist()))
+#     print("Missing PIDs:", missingPIDs_list)
+#     missingPIDs_df = pd.DataFrame(missingPIDs_list, columns=['missingPIDs'])
+#     missingPIDs_df.to_csv(output_df_path_missingPIDs)
 
-else:
-    comm.send(output_df_complete, dest = 0, tag = 11)
+# else:
+#     comm.send(output_df_complete, dest = 0, tag = 11)
     
 end_time = time.time()
 
