@@ -71,7 +71,3 @@ pid_coords_geom['lat'] = pid_coords_geom.geometry.y
 pid_coords_geom = pid_coords_geom[['index', 'p_cap', 'lon', 'lat']].rename(columns = {'index': 'PID'})
 file_path = os.path.join(thisDir, 'data', 'uswtdb', 'us_PID_cords.csv')
 pid_coords.to_csv(file_path, index = False)
-
-''' ============================
-Associate NREL GEA region to PID
-============================ '''
