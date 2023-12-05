@@ -204,6 +204,11 @@ if tx_scen == "100":
     tx_scen = 1.0
 if tx_scen == "120":
     tx_scen = 1.2
+    
+if ATBcapexYr_scen == "2030":
+    cambium_scen_yr_append = "_2030"
+if ATBcapexYr_scen == "2025":
+    cambium_scen_yr_append = ""
 
 ''' ============================
 Read data
@@ -247,6 +252,24 @@ def runOptimization(PID, output_df_arg):
         # OPERATION & MAINTENANCE COSTS
         om_w = 39*1000 # class 5, 2025
         om_s = 17*1000 # class 5, 2025
+        
+        ## Battery costs
+        # BATTERY CAPITAL COSTS (2022 ATB)
+        # Define capital cost for battery (in USD/MW), for advanced in 2025
+        battPowerCost =  162*1000
+        # Define energy cost (in USD/MWh), for advanced in 2025
+        battEnergyCost = 211*1000
+        # Define operations & maintenance cost for battery (in USD/MW-year), for 6 hr advanced in 2025
+        battOMcost = 36*1000
+        # Define capital future cost for battery (in USD/MW), for advanced in 2037
+        battPowerCostFuture =  100*1000
+        # Define energy future cost for battery (in USD/MWh), for advanced in 2037
+        battEnergyCostFuture = 130*1000
+        # Define operations & maintenance future cost for battery (in USD/MW-year), for 6 hr advanced in 2037
+        battOMcostFuture = 22*1000
+        # Define battery efficiency
+        rtEfficiency_sqrt = sqrt(0.85)
+            
 
     if ATBreleaseYr_scen == "2022" and ATBcapexYr_scen == "2030":
         # Define capital expenditure for wind and solar (in USD/MW) 
@@ -257,6 +280,23 @@ def runOptimization(PID, output_df_arg):
         om_w = 34*1000 # class 5, 2030
         om_s = 13*1000 # class 5, 2030
         
+        ## Battery costs
+        # BATTERY CAPITAL COSTS (2022 ATB)
+        # Define capital cost for battery (in USD/MW), for advanced in 2030
+        battPowerCost =  110*1000
+        # Define energy cost (in USD/MWh), for advanced in 2025
+        battEnergyCost = 143*1000
+        # Define operations & maintenance cost for battery (in USD/MW-year), for 6 hr advanced in 2030
+        battOMcost = 24*1000
+        # Define capital future cost for battery (in USD/MW), for advanced in 2042
+        battPowerCostFuture =  93*1000
+        # Define energy future cost for battery (in USD/MWh), for advanced in 2042
+        battEnergyCostFuture = 121*1000
+        # Define operations & maintenance future cost for battery (in USD/MW-year), for 6 hr advanced in 2042
+        battOMcostFuture = 21*1000
+        # Define battery efficiency
+        rtEfficiency_sqrt = sqrt(0.85)
+        
     
     if ATBreleaseYr_scen == "2023" and ATBcapexYr_scen == "2025":
         # 2023 ATB advanced scenario
@@ -264,6 +304,23 @@ def runOptimization(PID, output_df_arg):
         capEx_s = 1202*1000 # class 5, 2025
         om_w = 27*1000 # class 5, 2025
         om_s = 20*1000 # class 5, 2025
+        
+        ## Battery costs
+        # BATTERY CAPITAL COSTS (2023 ATB)
+        # Define capital cost for battery (in USD/MW), for advanced in 2025
+        battPowerCost =  216*1000
+        # Define energy cost (in USD/MWh), for advanced in 2025
+        battEnergyCost = 233*1000
+        # Define operations & maintenance cost for battery (in USD/MW-year), for 6 hr advanced in 2025
+        battOMcost = 40*1000
+        # Define capital future cost for battery (in USD/MW), for advanced in 2037
+        battPowerCostFuture =  150*1000
+        # Define energy future cost for battery (in USD/MWh), for advanced in 2037
+        battEnergyCostFuture = 161*1000
+        # Define operations & maintenance future cost for battery (in USD/MW-year), for 6 hr advanced in 2037
+        battOMcostFuture = 28*1000
+        # Define battery efficiency
+        rtEfficiency_sqrt = sqrt(0.85)
     
     if ATBreleaseYr_scen == "2023" and ATBcapexYr_scen == "2030":
         # 2023 ATB advanced scenario
@@ -271,6 +328,23 @@ def runOptimization(PID, output_df_arg):
         capEx_s = 917*1000 # class 5, 2030
         om_w = 24*1000 # class 5, 2030
         om_s = 16*1000 # class 5, 2030
+        
+        ## Battery costs
+        # BATTERY CAPITAL COSTS (2023 ATB)
+        # Define capital cost for battery (in USD/MW), for advanced in 2030
+        battPowerCost =  171*1000
+        # Define energy cost (in USD/MWh), for advanced in 2030
+        battEnergyCost = 184*1000
+        # Define operations & maintenance cost for battery (in USD/MW-year), for 6 hr advanced in 2030
+        battOMcost = 32*1000
+        # Define capital future cost for battery (in USD/MW), for advanced in 2042
+        battPowerCostFuture =  134*1000
+        # Define energy future cost for battery (in USD/MWh), for advanced in 2042
+        battEnergyCostFuture = 145*1000
+        # Define operations & maintenance future cost for battery (in USD/MW-year), for 6 hr advanced in 2042
+        battOMcostFuture = 25*1000
+        # Define battery efficiency
+        rtEfficiency_sqrt = sqrt(0.85)
         
     # Define capital expenditure for wind and solar (in USD/MW) 
     # 2022 ATB advanced scenario
@@ -323,21 +397,21 @@ def runOptimization(PID, output_df_arg):
     # battEnergyCostFuture = 199*1000 # in USD/MWh for moderate in 2037
     # battOMcostFuture = 37*1000 # in USD/MW-year for 6 hr moderate in 2037
     
-    # BATTERY CAPITAL COSTS (2022 ATB)
-    # Define capital cost for battery (in USD/MW), for advanced in 2025
-    battPowerCost =  162*1000
-    # Define energy cost (in USD/MWh), for advanced in 2025
-    battEnergyCost = 211*1000
-    # Define operations & maintenance cost for battery (in USD/MW-year), for 6 hr advanced in 2025
-    battOMcost = 36*1000
-    # Define capital future cost for battery (in USD/MW), for advanced in 2037
-    battPowerCostFuture =  100*1000
-    # Define energy future cost for battery (in USD/MWh), for advanced in 2037
-    battEnergyCostFuture = 130*1000
-    # Define operations & maintenance future cost for battery (in USD/MW-year), for 6 hr advanced in 2037
-    battOMcostFuture = 22*1000
-    # Define battery efficiency
-    rtEfficiency_sqrt = sqrt(0.85)
+    # # BATTERY CAPITAL COSTS (2022 ATB)
+    # # Define capital cost for battery (in USD/MW), for advanced in 2025
+    # battPowerCost =  162*1000
+    # # Define energy cost (in USD/MWh), for advanced in 2025
+    # battEnergyCost = 211*1000
+    # # Define operations & maintenance cost for battery (in USD/MW-year), for 6 hr advanced in 2025
+    # battOMcost = 36*1000
+    # # Define capital future cost for battery (in USD/MW), for advanced in 2037
+    # battPowerCostFuture =  100*1000
+    # # Define energy future cost for battery (in USD/MWh), for advanced in 2037
+    # battEnergyCostFuture = 130*1000
+    # # Define operations & maintenance future cost for battery (in USD/MW-year), for 6 hr advanced in 2037
+    # battOMcostFuture = 22*1000
+    # # Define battery efficiency
+    # rtEfficiency_sqrt = sqrt(0.85)
 
     # CAPITAL RECOVERY FACTOR
     # Define discount rate for capital recovery factor
@@ -387,7 +461,7 @@ def runOptimization(PID, output_df_arg):
     gea = pid_gea_df.loc[pid_gea_df['PID'] == PID, 'gea'].values[0]
     
     # Set filepath where wholesale electricity prices are for each GEA
-    ePrice_df_folder = os.path.join(inputFolder, cambium_scen, PTC_scen)
+    ePrice_df_folder = os.path.join(inputFolder, cambium_scen + cambium_scen_yr_append, PTC_scen)
     ePrice_path = os.path.join(ePrice_df_folder, f'cambiumHourly_{gea}.csv')
     ePrice_df_wind = pd.read_csv(ePrice_path)
 
