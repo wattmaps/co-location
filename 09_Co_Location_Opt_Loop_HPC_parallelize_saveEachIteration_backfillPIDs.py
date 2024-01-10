@@ -28,7 +28,7 @@ inputFolder = os.path.join(current_dir, 'data')
 
 ## Use specific PIDS
 #seq = open(os.path.join(inputFolder, 'uswtdb', 'pids_20_MW.txt'))
-seq = pd.read_csv(os.path.join(inputFolder, 'uswtdb', 'pids_15_MW.txt'))
+seq = pd.read_csv(os.path.join(inputFolder, 'uswtdb', 'us_PID_cords_15.csv'))
 
 ''' ============================
 Set solver
@@ -131,11 +131,11 @@ if mode == "backfill":
 
         
     PIDsList_finished = combined_df['PID'].tolist()
-    PIDsList_needToRun = list(set(seq['x'].tolist()) - set(PIDsList_finished))
+    PIDsList_needToRun = list(set(seq['PID'].tolist()) - set(PIDsList_finished))
     n_PIDs = len(PIDsList_needToRun)
     
 else:
-    PIDsList_needToRun = seq['x'].tolist()
+    PIDsList_needToRun = seq['PID'].tolist()
     n_PIDs = len(PIDsList_needToRun)
     
 print("working on", n_PIDs, "PIDs. List of PIDs: ", PIDsList_needToRun)
@@ -866,7 +866,7 @@ if i_job == 0:
     combined_df.to_csv(output_df_path)
     
     ## produce list of PIDs that are still missing/yet to be run
-    missingPIDs_list = list(set(seq['x'].tolist()) - set(combined_df['PID'].tolist()))
+    missingPIDs_list = list(set(seq['PID'].tolist()) - set(combined_df['PID'].tolist()))
     print("Missing PIDs:", missingPIDs_list)
     missingPIDs_df = pd.DataFrame(missingPIDs_list, columns=['missingPIDs'])
     missingPIDs_df.to_csv(output_df_path_missingPIDs)
