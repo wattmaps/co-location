@@ -166,8 +166,10 @@ def chunks(lst, n):
 # PID_start = 1
 # PID_end = PID_start + n_PIDs
 # PID_list_in = list(range(PID_start, PID_end, 1))
-
-iter_length = floor(n_PIDs/(N_jobs-1))
+if N_jobs >1:
+    iter_length = floor(n_PIDs/(N_jobs-1))
+else:
+    iter_length = n_PIDs
 
 list_batch = list(chunks(PIDsList_needToRun, iter_length))
 

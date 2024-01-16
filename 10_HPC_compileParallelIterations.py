@@ -20,7 +20,7 @@ print(current_dir)
 #current_dir = "/Users/grace/Documents/Wattmaps/co-location"
 inputFolder = os.path.join(current_dir, 'data')
 
-seq = pd.read_csv(os.path.join(inputFolder, 'uswtdb', 'pids_15_MW.txt'))
+seq = pd.read_csv(os.path.join(inputFolder, 'uswtdb', 'us_PID_cords_15.csv'))
 
 
 ''' ============================
@@ -41,7 +41,7 @@ ATBcost_scen = sys.argv[4] ## should be advanced or moderate
 ATBcapexYr_scen = sys.argv[5] ## should be either "2025" or "2030"
 tx_scen = sys.argv[6] ## should be either "100" or "120"
 scen_num = sys.argv[7]
-mode = sys.argv[8]
+mode = sys.argv[8] ## anything--can be "check" or "final"
 
 ''' ============================
 Set filepath for combined results
@@ -66,7 +66,8 @@ combined_df = pd.concat((pd.read_csv(f) for f in all_csvs_iter), axis = 0, ignor
 combined_df.to_csv(output_df_path)
 
 ## produce list of PIDs that are still missing/yet to be run
-missingPIDs_list = list(set(seq['x'].tolist()) - set(combined_df['PID'].tolist()))
+missingPIDs_list = list(set(seq['PID'].tolist()) - set(combined_df['PID'].tolist()))
+
 print("Missing PIDs:", missingPIDs_list)
 missingPIDs_df = pd.DataFrame(missingPIDs_list, columns=['missingPIDs'])
 missingPIDs_df.to_csv(output_df_path_missingPIDs)
