@@ -84,7 +84,26 @@ Initialize df and filepath
 ============================ '''
 
 # Create a df with column names
-output_df = pd.DataFrame(columns = ['PID', 'solar_capacity', 'wind_capacity', 'solar_wind_ratio', 'tx_capacity', 'batteryCap', 'batteryEnergy', 'revenue', 'cost', 'profit'])
+output_df = pd.DataFrame(columns = ['PID', 
+                                    'solar_capacity', 
+                                    'wind_capacity', 
+                                    'solar_wind_ratio', 
+                                    'tx_capacity', 
+                                    'batteryCap', 
+                                    'batteryEnergy', 
+                                    'revenue', 
+                                    'cost', 
+                                    'profit',
+                                    'LCOE',
+                                    'LVOE',
+                                    'NVOE',
+                                    'potentialGen_wind_lifetime',
+                                    'potentialGen_solar_lifetime',
+                                    'solar_wind_ratio_potentialGen', 
+                                    "actualGen_lifetime",
+                                    "potentialGen_lifetime",
+                                    "export_lifetime",
+                                    "curtailment"])
 
 ''' ============================
 Retrieve system arguments
@@ -780,7 +799,12 @@ def runOptimization(PID, output_df_arg):
     model_instance = model.create_instance()
     results = opt.solve(model_instance, tee = False)
 
-    # Store variable values from optimization
+
+    ''' ============================
+    Post-processing of opitmization solution
+    ============================ '''
+    
+    # Store scalar variable values from optimization
     solar_capacity = model_instance.solar_capacity.value
     wind_capacity = model_instance.pot_w.value
     tx_capacity = model_instance.tx_capacity.value
@@ -790,6 +814,110 @@ def runOptimization(PID, output_df_arg):
     solar_wind_ratio = solar_capacity/wind_capacity
     batteryCap = model_instance.P_batt_max.value
     batteryEnergy = model_instance.E_batt_max.value
+    
+    # Function to parse time series variables from optimization
+    def parseTimeSeries(df, val_colname):
+        ## move index into columns
+        df = df.reset_index()
+        df['index'] = df["index"].astype('str')
+        df_hour_yr = df['index'].str.split(",", expand=True)
+        hour = df_hour_yr[0].str.extract(r'\((\d{1,})') 
+        year = df_hour_yr[1].str.extract('(\d+)')
+        df_parsed = hour.merge(year, left_index=True, right_index =True).merge(df[0], left_index=True, right_index =True)
+        df_parsed.rename(columns = {"0_x": "hour", "0_y": "year", 0: val_colname}, inplace = True)
+        return df_parsed
+
+    # === ACTUAL GENERATION    
+    actualGen = model_instance.actualGen.extract_values()
+    actualGen_df = pd.DataFrame.from_dict(actualGen, orient = "index")
+    #actualGen_df_path = os.path.join(inputFolder, 'results/' + scenario + '/model_results_test_actualGen.csv')
+    #actualGen_df.to_csv(actualGen_df_path, index = True)
+    actualGen_df_parsed = parseTimeSeries(actualGen_df, "actualGen")
+    actualGen_df_annualSum = actualGen_df_parsed[["actualGen", "year"]].groupby("year").sum()
+    actualGen_lifetime = actualGen_df_annualSum['actualGen'].sum()
+
+    # === POTENTIAL GENERATION
+    potentialGen = model_instance.potentialGen.extract_values()
+    potentialGen_df = pd.DataFrame.from_dict(potentialGen, orient = "index")
+    #potentialGen_df_path = os.path.join(inputFolder, 'results/' + scenario + '/model_results_test_potentialGen.csv')
+    #potentialGen_df.to_csv(potentialGen_df_path, index = True)
+    potentialGen_df_parsed = parseTimeSeries(potentialGen_df, "potentialGen")
+    potentialGen_df_annualSum = potentialGen_df_parsed[["potentialGen", "year"]].groupby("year").sum()
+    potentialGen_lifetime = potentialGen_df_annualSum['potentialGen'].sum()
+
+    ## === CALCULATE CURTAILMENT
+    curtailment = (potentialGen_lifetime - actualGen_lifetime)/potentialGen_lifetime
+
+    # === EXPORT GENERATION
+    export = model_instance.Export_t.extract_values()
+    export_df = pd.DataFrame.from_dict(export, orient = "index")
+    export_df_parsed = parseTimeSeries(export_df, "export")
+    ## calculate annual revenue
+    export_df_annualSum = export_df_parsed[["export", "year"]].groupby("year").sum()
+    ## discount annual revenue and calculate NPV
+    export_df_annualSum = export_df_annualSum.reset_index()
+    export_df_annualSum['year'] = export_df_annualSum["year"].astype('int')
+    export_df_annualSum.sort_values(by = ['year'], inplace = True)
+    export_df_annualSum['export_discounted'] = export_df_annualSum['export'] / (1+d)**export_df_annualSum['year']
+    export_lifetime_discounted = export_df_annualSum['export_discounted'].sum()
+    export_lifetime = export_df_annualSum['export'].sum()
+    
+    # export_df_path = os.path.join(inputFolder, 'results/' + scenario + '/model_results_test_export.csv')
+    # export_df.to_csv(export_df_path, index = True)
+    
+    # === REVENUE 
+    eprice_wind = model_instance.eprice_wind.extract_values()
+    eprice_wind_df = pd.DataFrame.from_dict(eprice_wind, orient = "index")
+    # calc NPV revenue = export generation * price (discounted)
+    revenue_df = export_df * eprice_wind_df
+    revenue_df_parsed = parseTimeSeries(revenue_df, "revenue")
+    revenue_df_annualSum = revenue_df_parsed[["revenue", "year"]].groupby("year").sum()
+    
+    ## calculate annual LVOE
+    revenue_df_annualSum = revenue_df_annualSum.reset_index()
+    revenue_df_annualSum['year'] = revenue_df_annualSum["year"].astype('int')
+    LVOE_annual = revenue_df_annualSum.merge(export_df_annualSum, how = "left", on = "year")
+    LVOE_annual["LVOE"] = LVOE_annual['revenue']/LVOE_annual['export_discounted']
+    LVOE_annual['LVOE'].mean()
+    
+    # === CALCULATE NVOE (NET VALUE OF ELECTRICITY)
+    NVOE = (revenue - cost)/export_lifetime_discounted
+    
+    # === CALCULATE LCOE
+    LCOE = cost/export_lifetime_discounted
+    
+    # === CALCULATE LVOE
+    LVOE = revenue/export_lifetime_discounted
+    
+    # === BATTERY DISCHARGE
+    discharge = model_instance.P_dischar_t.extract_values()
+    discharge_df = pd.DataFrame.from_dict(discharge, orient = "index")
+    # discharge_df_path = os.path.join(inputFolder, 'results/' + scenario + '/model_results_test_discharge.csv')
+    # discharge_df.to_csv(discharge_df_path, index = True)
+    discharge_df_parsed = parseTimeSeries(discharge_df, "discharge")
+    discharge_df_annualSum = discharge_df_parsed[["discharge", "year"]].groupby("year").sum()
+
+    # === BATTERY CHARGE
+    charge = model_instance.P_char_t.extract_values()
+    charge_df = pd.DataFrame.from_dict(charge, orient = "index")
+    # charge_df_path = os.path.join(inputFolder, 'results/' + scenario + '/model_results_test_charge.csv')
+    # charge_df.to_csv(charge_df_path, index = True)
+    charge_df_parsed = parseTimeSeries(charge_df, "charge")
+    charge_df_annualSum = charge_df_parsed[["charge", "year"]].groupby("year").sum()
+    
+    # === CALCULATE POTENTIAL GENERATION FOR WIND
+    ## potential generation  = capacity_wind * CF_hour
+    potentialGen_wind = pd.melt(cf_w_df, value_vars = [str(item) for item in range(1,26)], id_vars = "hour", var_name = "year")
+    potentialGen_wind["potentialGen"] = wind_capacity * potentialGen_wind['value']
+    potentialGen_wind_lifetime = potentialGen_wind["potentialGen"].sum()
+    
+    # === CALCULATE POTENTIAL GENERATION FOR SOLAR
+    potentialGen_solar = pd.melt(cf_s_df, value_vars = [str(item) for item in range(1,26)], id_vars = "hour", var_name = "year")
+    potentialGen_solar["potentialGen"] = solar_capacity * potentialGen_solar['value']
+    potentialGen_solar_lifetime = potentialGen_solar["potentialGen"].sum()
+    
+    # === CALCULATE POTENTIAL GENERATION RATIO FOR SOLAR:WIND
+    solar_wind_ratio_potentialGen = potentialGen_solar_lifetime/potentialGen_wind_lifetime
 
     # append rows to output_df
     output_df = output_df_arg.append({'PID' : int(PID), 
@@ -801,7 +929,17 @@ def runOptimization(PID, output_df_arg):
                     'batteryEnergy': batteryEnergy, 
                     'revenue': revenue, 
                     'cost': cost, 
-                    'profit': profit}, ignore_index = True)
+                    'profit': profit,
+                    'LCOE': LCOE,
+                    'LVOE': LVOE,
+                    'NVOE': NVOE,
+                    'potentialGen_wind_lifetime': potentialGen_wind_lifetime,
+                    'potentialGen_solar_lifetime': potentialGen_solar_lifetime,
+                    'solar_wind_ratio_potentialGen': solar_wind_ratio_potentialGen, 
+                    "actualGen_lifetime": actualGen_lifetime,
+                    "potentialGen_lifetime": potentialGen_lifetime,
+                    "exportGen_lifetime": export_lifetime,
+                    "curtailment": curtailment}, ignore_index = True)
     
     return output_df
 
