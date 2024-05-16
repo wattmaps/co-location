@@ -9,14 +9,16 @@ import numpy as np
 import shutil
 from pyomo.environ import *
 from pyomo.opt import SolverFactory
-import cplex
+#import gurobi
+#import gurobipy
+#import cplex
 
 start_time = time.time()
 
 current_dir = os.getcwd()
 print(current_dir)
 
-current_dir = "/Users/grace/Documents/Wattmaps/co-location"
+#current_dir = "/Users/grace/Documents/Wattmaps/co-location"
 inputFolder = os.path.join(current_dir, 'data')
 
 ''' ============================
@@ -26,10 +28,17 @@ Set solver
 solver = 'cplex'
 
 if solver == 'cplex':
-    opt = SolverFactory('cplex', executable = '/Applications/CPLEX_Studio2211/cplex/bin/x86-64_osx/cplex')
+    opt = SolverFactory('cplex', executable = '/sw/csc/CPLEX_Studio2211/cplex/bin/x86-64_linux/cplex') #'/Applications/CPLEX_Studio2211/cplex/bin/x86-64_osx/cplex')
     opt.options['mipgap'] = 0.005
     opt.options['optimalitytarget'] = 1 ## https://www.ibm.com/docs/en/icos/12.10.0?topic=parameters-optimality-target
 
+if solver == 'gurobi':
+    opt = SolverFactory('gurobi')
+    
+if solver == 'cbc':
+    opt = SolverFactory('cbc', solver_io = "python")
+    
+    
 ''' ============================
 Define functions to generate dictionary objects from dfs
 ============================ '''
@@ -65,27 +74,44 @@ def pyomoInput_matrixToDict(df, i_indexName, j_indexNames_list):
 Initialize df and filepath
 ============================ '''
 
-scenario = "Batt_noConstraint11_20perTxCap_CambiumMidcase"
-cambium_scen = 'Cambium22_Mid-case' ## 'Cambium22_Electrification'
-
-scenResultsFolder = os.path.join(inputFolder, 'results/' + scenario)
-if not os.path.exists(scenResultsFolder):
-    os.makedirs(scenResultsFolder)
-
 # Create a df with column names
 output_df = pd.DataFrame(columns = ['PID', 'solar_capacity', 'wind_capacity', 'solar_wind_ratio', 'tx_capacity', 'batteryCap', 'batteryEnergy', 'revenue', 'cost', 'profit'])
-#output_df = pd.DataFrame(columns = ['PID', 'solar_capacity', 'wind_capacity', 'solar_wind_ratio', 'tx_capacity', 'revenue', 'cost', 'profit'])
 
+''' ============================
+Retrieve system arguments
+============================ '''
+
+cambium_scen = sys.argv[1] ## should be either 'Cambium22Electrification' or "Cambium22Midcase"
+PTC_scen = sys.argv[2] ## should be either "NoPhaseout" or "YesPhaseout"
+ATBreleaseYr_scen = sys.argv[3] ## should be either 2022 or 2023
+ATBcost_scen = sys.argv[4] ## should be advanced or moderate
+ATBcapexYr_scen = sys.argv[5] ## should be either "2025" or "2030"
+tx_scen = sys.argv[6] ## should be either "100" or "120"
+scen_num = sys.argv[7]
+scenario_filename = cambium_scen + "_" + PTC_scen + "_" + ATBreleaseYr_scen + "_" + ATBcost_scen + "_" + ATBcapexYr_scen + "_" + tx_scen + "_" + scen_num + ".csv"
 
 # Create sequence of PIDs (n=1335) and add to PID column
 seq = list(range(1, 1336))
 output_df['PID'] = seq
 
-# Save df to csv 
-# output_df.to_csv(os.path.join(inputFolder, 'model_results.csv'), index = False)
+# Set file path for model results csv
+output_df_path = os.path.join(current_dir, 'results', 'HPCscenarios', scenario_filename)
 
-output_df_path = os.path.join(inputFolder, 'results/' + scenario + '/model_results_test.csv')
-# output_df = pd.read_csv(output_df_path, engine = 'python')
+## Reassign variables to match 
+if cambium_scen == "Cambium22Electrification":
+    cambium_scen = "Cambium22_Electrification"    
+if cambium_scen == "Cambium22Midcase":
+    cambium_scen = "Cambium22_Mid-case"
+
+if PTC_scen == "NoPhaseout":
+    PTC_scen = "Cash_Flow_PTC_No_Phaseout"
+if PTC_scen == "YesPhaseout":
+    PTC_scen = "Cash_Flow"
+    
+if tx_scen == "100":
+    tx_scen = 1.0
+if tx_scen == "120":
+    tx_scen = 1.2
 
 ''' ============================
 Read data
@@ -119,36 +145,106 @@ def runOptimization(PID):
     Set scalar parameters
     ============================ '''
 
-    # CAPITAL AND OPERATION & MAINTENANCE COSTS
-    # Define capital expenditure for wind and solar (in USD/MW) ## updated using 2023 ATB and 2025 moderate scenario
-    capEx_w = 1268*1000 ## class 5, moderate, 2025
-    capEx_w = 1150*1000 ## class 5, moderate, 2030
-    capEx_s = 1248*1000 ## class 5, moderate, 2025
-    capEx_s = 1038*1000## class 5, moderate, 2030
+    # CAPITAL COSTS
     
-    ## use old capex values (class 5, 2030, from 2022 ATB; averages advanced and moderate scenarios)
-    capEx_w = (950+700)/2*1000 
-    capEx_s = (752+618)/2*1000 
+    if ATBreleaseYr_scen == "2022" and ATBcapexYr_scen == "2025":
+        # Define capital expenditure for wind and solar (in USD/MW) 
+        # 2022 ATB advanced scenario
+        capEx_w = 1081*1000 # class 5, 2025
+        capEx_s = 922*1000 # class 5, 2025
+        # OPERATION & MAINTENANCE COSTS
+        om_w = 39*1000 # class 5, 2025
+        om_s = 17*1000 # class 5, 2025
+
+    if ATBreleaseYr_scen == "2022" and ATBcapexYr_scen == "2030":
+        # Define capital expenditure for wind and solar (in USD/MW) 
+        # 2022 ATB advanced scenario
+        capEx_w = 704*1000 # class 5, 2030
+        capEx_s = 620*1000 # class 5, 2030
+        # OPERATION & MAINTENANCE COSTS
+        om_w = 34*1000 # class 5, 2030
+        om_s = 13*1000 # class 5, 2030
+        
     
+    if ATBreleaseYr_scen == "2023" and ATBcapexYr_scen == "2025":
+        # 2023 ATB advanced scenario
+        capEx_w = 1244*1000 # class 5, 2025
+        capEx_s = 1202*1000 # class 5, 2025
+        om_w = 27*1000 # class 5, 2025
+        om_s = 20*1000 # class 5, 2025
+    
+    if ATBreleaseYr_scen == "2023" and ATBcapexYr_scen == "2030":
+        # 2023 ATB advanced scenario
+        capEx_w = 1096*1000 # class 5, 2030
+        capEx_s = 917*1000 # class 5, 2030
+        om_w = 24*1000 # class 5, 2030
+        om_s = 16*1000 # class 5, 2030
+        
+    # Define capital expenditure for wind and solar (in USD/MW) 
+    # 2022 ATB advanced scenario
+    # capEx_w = 1081*1000 # class 5, 2025
+    # capEx_w = 704*1000 # class 5, 2030
+    
+    # 2022 ATB advanced scenario
+    # capEx_s = 922*1000 # class 5, 2025
+    # capEx_s = 620*1000 # class 5, 2030
+
+    # 2022 ATB advanced and moderate scenario
+    # capEx_w = (950+700)/2*1000 # class 5, 2030
+    # capEx_s = (752+618)/2*1000 # class 5, 2030
+
+    # 2023 ATB advanced scenario
+    # capEx_w = 1244*1000 # class 5, 2025
+    # capEx_w = 1096*1000 # class 5, 2030
+
+    # 2023 ATB advanced scenario
+    # capEx_s = 1202*1000 # class 5, 2025
+    # capEx_s = 917*1000 # class 5, 2030
+    
+    # OPERATION & MAINTENANCE COSTS
     # Define operations & maintenance costs for wind and solar (in USD/MW/yr)
-    om_w = 28.8*1000 
-    om_w = 27*1000  ## class 4, moderate, 2030
-    om_s = 20.5*1000 
-    om_s = 18*1000 ## class 5, moderate, 2030
+    # 2022 ATB advanced scenario
+    # om_w = 39*1000 # class 5, 2025
+    # om_w = 34*1000 # class 5, 2030
+
+    # 2022 ATB advanced scenario
+    # om_s = 17*1000 # class 5, 2025
+    # om_s = 13*1000 # class 5, 2030
     
-    ## old om values (class 5, 2030, from 2022 ATB; averages advanced and moderate scenarios)
-    om_w = (39+34)/2*1000 
-    om_s = (13+15)/2*1000 
+    # 2022 ATB advanced and moderate scenario
+    # om_w = (39+34)/2*1000 # class 5, 2030
+    # om_s = (13+15)/2*1000 # class 5, 2030
+    
+    # 2023 ATB advanced scenario
+    # om_w = 27*1000 # class 5, 2025
+    # om_w = 24*1000 # class 5, 2030
+    
+    # 2023 ATB advanced scenario
+    # om_s = 20*1000 # class 5, 2025
+    # om_s = 16*1000 # class 5, 2030
     
     ## Define capital costs for battery 
-    battPowerCost =  288*1000 # in USD/MW for moderate in 2025
-    battEnergyCost = 287*1000 # in USD/MWh for moderate in 2025
-    battOMcost = 50*1000 # in USD/MW-year for 6 hr moderate in 2025
-    battPowerCostFuture =  280*1000 # in USD/MW for moderate in 2037
-    battEnergyCostFuture = 199*1000 # in USD/MWh for moderate in 2037
-    battOMcostFuture = 37*1000 # in USD/MW-year for 6 hr moderate in 2037
+    # battPowerCost =  288*1000 # in USD/MW for moderate in 2025
+    # battEnergyCost = 287*1000 # in USD/MWh for moderate in 2025
+    # battOMcost = 50*1000 # in USD/MW-year for 6 hr moderate in 2025
+    # battPowerCostFuture =  280*1000 # in USD/MW for moderate in 2037
+    # battEnergyCostFuture = 199*1000 # in USD/MWh for moderate in 2037
+    # battOMcostFuture = 37*1000 # in USD/MW-year for 6 hr moderate in 2037
     
-    ## Battery efficiency
+    # BATTERY CAPITAL COSTS (2022 ATB)
+    # Define capital cost for battery (in USD/MW), for advanced in 2025
+    battPowerCost =  162*1000
+    # Define energy cost (in USD/MWh), for advanced in 2025
+    battEnergyCost = 211*1000
+    # Define operations & maintenance cost for battery (in USD/MW-year), for 6 hr advanced in 2025
+    battOMcost = 36*1000
+    # Define capital future cost for battery (in USD/MW), for advanced in 2037
+    battPowerCostFuture =  100*1000
+    # Define energy future cost for battery (in USD/MWh), for advanced in 2037
+    battEnergyCostFuture = 130*1000
+    # Define operations & maintenance future cost for battery (in USD/MW-year), for 6 hr advanced in 2037
+    battOMcostFuture = 22*1000
+    # Define battery efficiency
     rtEfficiency_sqrt = sqrt(0.85)
 
     # CAPITAL RECOVERY FACTOR
@@ -159,9 +255,12 @@ def runOptimization(PID):
     n_bat = 12.5 # life of battery
     # Define capital recovery factor (scalar)
     CRF = (d*(1+d)**n)/((1+d)**n - 1)
+    print(CRF)
     CRFbat = (d*(1+d)**n_bat)/((1+d)**n_bat - 1)
+    print(CRFbat)
     ## denominator of battery 
     denom_batt = (1 + d)**n_bat
+    print(denom_batt)
 
     # TRANSMISSION AND SUBSTATION COSTS
     # Define USD2018 per km per MW for total transmission costs per MW
@@ -180,11 +279,12 @@ def runOptimization(PID):
     # Define potential installed capacity
     cap_s = cap_s_df.loc[cap_s_df['PID'] == PID, 'solar_installed_cap_mw'].iloc[0]
     cap_w = cap_w_df.loc[cap_w_df['PID'] == PID, 'p_cap_mw'].iloc[0]
+    print("cap_w: ", cap_w)
 
     # TRANSMISSION CAPACITY
     # Define associated transmission substations capacity in MW
     ## size to wind capacity * certain percentage
-    tx_MW = cap_w * 1.2
+    tx_MW = cap_w * tx_scen
     # if cap_w <= 100:
     #     tx_MW = cap_w 
     # else:
@@ -197,11 +297,13 @@ def runOptimization(PID):
     ## WHOLESALE ELECTRICITY PRICES
     # Determine GEA associated with PID
     gea = pid_gea_df.loc[pid_gea_df['PID'] == PID, 'gea'].values[0]
-
+    print(gea)
+    
     # Set filepath where wholesale electricity prices are for each GEA
-    ePrice_df_folder = os.path.join(inputFolder, cambium_scen, 'Cash_Flow')
+    ePrice_df_folder = os.path.join(inputFolder, cambium_scen, PTC_scen)
     ePrice_path = os.path.join(ePrice_df_folder, f'cambiumHourly_{gea}.csv')
     ePrice_df_wind = pd.read_csv(ePrice_path)
+    print(ePrice_df_wind.head(3))
 
     ## SOLAR AND WIND CAPACITY FACTORS
     cf_s_path = os.path.join(inputFolder, 'SAM', 'Solar_Capacity_Factors', f'capacity_factor_PID{PID}.csv')
@@ -209,12 +311,14 @@ def runOptimization(PID):
     cf_s_df = pd.read_csv(cf_s_path)
     ## subset to only the capacity factor column
     # cf_only_s_df = cf_s_df.loc[:,'energy_generation']
-
+    print(cf_s_df.head(3))
+    
     cf_w_path = os.path.join(inputFolder, 'SAM', 'Wind_Capacity_Factors', f'capacity_factor_PID{PID}.csv')
     # cf_w_path = inputFolder + '/PID1_CF_Wide_Matrix' + '/WIND_capacity_factor_PID' + str(PID) + '.csv'
     cf_w_df = pd.read_csv(cf_w_path)
     ## subset to only the capacity factor column
     # cf_only_w_df = cf_w_df.loc[:,'energy_generation']
+    print(cf_w_df.head(3))
     
     ''' ============================
     Initialize model
@@ -268,7 +372,7 @@ def runOptimization(PID):
     ePrice_wind_hourly = pyomoInput_matrixToDict(ePrice_df_wind, 'hour', year_char)
     #ePrice_solar_hourly = next(iter(pyomoInput_matrixToDict(ePrice_df_wind, 'hour', year)))
 
-    ePrice_wind_hourly[1, str(year[0])]
+    print(ePrice_wind_hourly[1, str(year[0])])
 
     # Set parameter
     # model.eprice_wind = Param(model.t, default = ePrice_wind_hourly) # price of wind at each hour
@@ -293,7 +397,10 @@ def runOptimization(PID):
     wind_cf_hourly = pyomoInput_matrixToDict(cf_w_df, 'hour', year_char)
     solar_cf_hourly = pyomoInput_matrixToDict(cf_s_df, 'hour', year_char)
     #solar_cf_hourly = next(iter(pyomoInput_matrixToDict(cf_s_df, 'csv', 'hour', year)))
-
+    
+    print(wind_cf_hourly[1, str(year[0])])
+    print(solar_cf_hourly[12, str(year[0])])
+    
     model.cf_wind = Param(model.HOURYEAR, default = wind_cf_hourly)
     model.cf_solar = Param(model.HOURYEAR, default = solar_cf_hourly)
 
@@ -318,7 +425,8 @@ def runOptimization(PID):
     model.batt_power_cost_future = Param(default = battPowerCostFuture)
     model.batt_energy_cost_future = Param(default = battEnergyCostFuture)
     model.batt_om_future = Param(default = battOMcostFuture)
-    model.duration_batt = Param(default = 8)
+    #model.duration_batt = Param(default = 8)
+    model.denom_batt = Param(default = denom_batt)
 
     ''' ============================
     Set decision, slack, and battery variables
@@ -401,7 +509,7 @@ def runOptimization(PID):
                 (model.P_batt_max * model.batt_power_cost + model.E_batt_max * model.batt_energy_cost) +\
                     (model.P_batt_max * model.batt_om / model.CRFbat) +\
                   ((model.P_batt_max * model.batt_power_cost_future + model.E_batt_max * model.batt_energy_cost_future) +\
-                      (model.P_batt_max * model.batt_om_future / model.CRFbat))/ denom_batt # denominator needs to be reviewed
+                      (model.P_batt_max * model.batt_om_future / model.CRFbat))/ model.denom_batt # denominator needs to be reviewed
     model.lifetimeCosts = Constraint(rule = lifetimeCosts_rule)
     
     ## Constraint (5) ---
@@ -592,10 +700,10 @@ Execute optimization loop
 ============================ '''
 
 PID_start = 1
-PID_end = PID_start + 10
+PID_end = PID_start + 1
 start_time = time.time()
 PID_list_in = list(range(PID_start, PID_end, 1))
-PID_list_in = list([2,6])
+#PID_list_in = list([2,6])
 runOptimizationLoop(PID_list_in)  
 end_time = time.time()
 print('Time taken:', end_time - start_time, 'seconds')  

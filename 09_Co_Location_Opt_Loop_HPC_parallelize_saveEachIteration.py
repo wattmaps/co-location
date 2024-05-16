@@ -2,6 +2,9 @@
 Import packages and set directory
 ============================ '''
 
+# install mpi4py available on conda
+# check cnsi website and check for mpi workshops
+
 import os, sys
 import time
 import pandas as pd
@@ -9,15 +12,57 @@ import numpy as np
 import shutil
 from pyomo.environ import *
 from pyomo.opt import SolverFactory
-import cplex
+#import gurobi
+#import gurobipy
+#import cplex
+from mpi4py import MPI
 
 start_time = time.time()
 
 current_dir = os.getcwd()
 print(current_dir)
 
-current_dir = "/Users/grace/Documents/Wattmaps/co-location"
+#current_dir = "/Users/grace/Documents/Wattmaps/co-location"
 inputFolder = os.path.join(current_dir, 'data')
+
+## Use specific PIDS
+#seq = open(os.path.join(inputFolder, 'uswtdb', 'pids_20_MW.txt'))
+seq = pd.read_csv(os.path.join(inputFolder, 'uswtdb', 'pids_15_MW.txt'))
+
+''' ============================
+Setup parallel processing
+============================ '''
+# Get MPI node information
+def _get_node_info(verbose = False):
+    comm = MPI.COMM_WORLD
+    size = comm.Get_size()
+    rank = comm.Get_rank()
+    name = MPI.Get_processor_name()
+    if verbose:
+        print('>> MPI: Name: {} Rank: {} Size: {}'.format(name, rank, size) )
+    return int(rank), int(size), comm
+
+# MPI job variables
+i_job, N_jobs, comm = _get_node_info()
+
+# create list of PIDs to run in each node
+def chunks(lst, n):
+    """Yield successive n-sized chunks from lst."""
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]
+
+# n_PIDs = 1334
+# PID_start = 1
+# PID_end = PID_start + n_PIDs
+# PID_list_in = list(range(PID_start, PID_end, 1))
+
+PID_list_in = seq['x'].tolist()
+n_PIDs = len(seq)
+iter_length = floor(n_PIDs/(N_jobs-1))
+
+list_batch = list(chunks(PID_list_in, iter_length))
+
+list_batch_iter = list_batch[i_job]
 
 ''' ============================
 Set solver
@@ -26,10 +71,17 @@ Set solver
 solver = 'cplex'
 
 if solver == 'cplex':
-    opt = SolverFactory('cplex', executable = '/Applications/CPLEX_Studio2211/cplex/bin/x86-64_osx/cplex')
+    opt = SolverFactory('cplex', executable = '/sw/csc/CPLEX_Studio2211/cplex/bin/x86-64_linux/cplex') #'/Applications/CPLEX_Studio2211/cplex/bin/x86-64_osx/cplex')
     opt.options['mipgap'] = 0.005
     opt.options['optimalitytarget'] = 1 ## https://www.ibm.com/docs/en/icos/12.10.0?topic=parameters-optimality-target
 
+if solver == 'gurobi':
+    opt = SolverFactory('gurobi')
+    
+if solver == 'cbc':
+    opt = SolverFactory('cbc', solver_io = "python")
+    
+    
 ''' ============================
 Define functions to generate dictionary objects from dfs
 ============================ '''
@@ -65,27 +117,52 @@ def pyomoInput_matrixToDict(df, i_indexName, j_indexNames_list):
 Initialize df and filepath
 ============================ '''
 
-scenario = "Batt_noConstraint11_20perTxCap_CambiumMidcase"
-cambium_scen = 'Cambium22_Mid-case' ## 'Cambium22_Electrification'
-
-scenResultsFolder = os.path.join(inputFolder, 'results/' + scenario)
-if not os.path.exists(scenResultsFolder):
-    os.makedirs(scenResultsFolder)
-
 # Create a df with column names
 output_df = pd.DataFrame(columns = ['PID', 'solar_capacity', 'wind_capacity', 'solar_wind_ratio', 'tx_capacity', 'batteryCap', 'batteryEnergy', 'revenue', 'cost', 'profit'])
-#output_df = pd.DataFrame(columns = ['PID', 'solar_capacity', 'wind_capacity', 'solar_wind_ratio', 'tx_capacity', 'revenue', 'cost', 'profit'])
 
+''' ============================
+Retrieve system arguments and set filepath for results
+============================ '''
+
+cambium_scen = sys.argv[1] ## should be either 'Cambium22Electrification' or "Cambium22Midcase"
+PTC_scen = sys.argv[2] ## should be either "NoPhaseout" or "YesPhaseout"
+ATBreleaseYr_scen = sys.argv[3] ## should be either 2022 or 2023
+ATBcost_scen = sys.argv[4] ## should be advanced or moderate
+ATBcapexYr_scen = sys.argv[5] ## should be either "2025" or "2030"
+tx_scen = sys.argv[6] ## should be either "100" or "120"
+scen_num = sys.argv[7]
+
+scenario_foldername_iter = cambium_scen + "_" + PTC_scen + "_" + ATBreleaseYr_scen + "_" + ATBcost_scen + "_" + ATBcapexYr_scen + "_" + tx_scen + "_" + scen_num
+scenario_filename_iter = cambium_scen + "_" + PTC_scen + "_" + ATBreleaseYr_scen + "_" + ATBcost_scen + "_" + ATBcapexYr_scen + "_" + tx_scen + "_" + scen_num + "_" + str(i_job)  + ".csv"
+scenario_filename_combined = cambium_scen + "_" + PTC_scen + "_" + ATBreleaseYr_scen + "_" + ATBcost_scen + "_" + ATBcapexYr_scen + "_" + tx_scen + "_" + scen_num  + ".csv"
 
 # Create sequence of PIDs (n=1335) and add to PID column
-seq = list(range(1, 1336))
-output_df['PID'] = seq
+#seq = list(range(1, 1336))
+#output_df['PID'] = seq
 
-# Save df to csv 
-# output_df.to_csv(os.path.join(inputFolder, 'model_results.csv'), index = False)
+# if not os.path.exists(os.path.join(current_dir, 'results', 'HPCscenarios', scenario_foldername_iter)):
+#     print("Creating results folder")
+#     os.makedirs(os.path.join(current_dir, 'results', 'HPCscenarios', scenario_foldername_iter))
 
-output_df_path = os.path.join(inputFolder, 'results/' + scenario + '/model_results_test.csv')
-# output_df = pd.read_csv(output_df_path, engine = 'python')
+# Set file path for model results csv
+output_df_path_iterations = os.path.join(current_dir, 'results', 'HPCscenarios', scenario_foldername_iter, scenario_filename_iter)
+output_df_path = os.path.join(current_dir, 'results', 'HPCscenarios', scenario_filename_combined)
+
+## Reassign variables to match 
+if cambium_scen == "Cambium22Electrification":
+    cambium_scen = "Cambium22_Electrification"    
+if cambium_scen == "Cambium22Midcase":
+    cambium_scen = "Cambium22_Mid-case"
+
+if PTC_scen == "NoPhaseout":
+    PTC_scen = "Cash_Flow_PTC_No_Phaseout"
+if PTC_scen == "YesPhaseout":
+    PTC_scen = "Cash_Flow"
+    
+if tx_scen == "100":
+    tx_scen = 1.0
+if tx_scen == "120":
+    tx_scen = 1.2
 
 ''' ============================
 Read data
@@ -111,7 +188,7 @@ pid_gea_df = pd.read_csv(pid_gea_file)
 Define optimization function given a single value
 ============================ '''
 
-def runOptimization(PID):
+def runOptimization(PID, output_df_arg):
 
     print('PID: ', PID)
 
@@ -119,36 +196,106 @@ def runOptimization(PID):
     Set scalar parameters
     ============================ '''
 
-    # CAPITAL AND OPERATION & MAINTENANCE COSTS
-    # Define capital expenditure for wind and solar (in USD/MW) ## updated using 2023 ATB and 2025 moderate scenario
-    capEx_w = 1268*1000 ## class 5, moderate, 2025
-    capEx_w = 1150*1000 ## class 5, moderate, 2030
-    capEx_s = 1248*1000 ## class 5, moderate, 2025
-    capEx_s = 1038*1000## class 5, moderate, 2030
+    # CAPITAL COSTS
     
-    ## use old capex values (class 5, 2030, from 2022 ATB; averages advanced and moderate scenarios)
-    capEx_w = (950+700)/2*1000 
-    capEx_s = (752+618)/2*1000 
+    if ATBreleaseYr_scen == "2022" and ATBcapexYr_scen == "2025":
+        # Define capital expenditure for wind and solar (in USD/MW) 
+        # 2022 ATB advanced scenario
+        capEx_w = 1081*1000 # class 5, 2025
+        capEx_s = 922*1000 # class 5, 2025
+        # OPERATION & MAINTENANCE COSTS
+        om_w = 39*1000 # class 5, 2025
+        om_s = 17*1000 # class 5, 2025
+
+    if ATBreleaseYr_scen == "2022" and ATBcapexYr_scen == "2030":
+        # Define capital expenditure for wind and solar (in USD/MW) 
+        # 2022 ATB advanced scenario
+        capEx_w = 704*1000 # class 5, 2030
+        capEx_s = 620*1000 # class 5, 2030
+        # OPERATION & MAINTENANCE COSTS
+        om_w = 34*1000 # class 5, 2030
+        om_s = 13*1000 # class 5, 2030
+        
     
+    if ATBreleaseYr_scen == "2023" and ATBcapexYr_scen == "2025":
+        # 2023 ATB advanced scenario
+        capEx_w = 1244*1000 # class 5, 2025
+        capEx_s = 1202*1000 # class 5, 2025
+        om_w = 27*1000 # class 5, 2025
+        om_s = 20*1000 # class 5, 2025
+    
+    if ATBreleaseYr_scen == "2023" and ATBcapexYr_scen == "2030":
+        # 2023 ATB advanced scenario
+        capEx_w = 1096*1000 # class 5, 2030
+        capEx_s = 917*1000 # class 5, 2030
+        om_w = 24*1000 # class 5, 2030
+        om_s = 16*1000 # class 5, 2030
+        
+    # Define capital expenditure for wind and solar (in USD/MW) 
+    # 2022 ATB advanced scenario
+    # capEx_w = 1081*1000 # class 5, 2025
+    # capEx_w = 704*1000 # class 5, 2030
+    
+    # 2022 ATB advanced scenario
+    # capEx_s = 922*1000 # class 5, 2025
+    # capEx_s = 620*1000 # class 5, 2030
+
+    # 2022 ATB advanced and moderate scenario
+    # capEx_w = (950+700)/2*1000 # class 5, 2030
+    # capEx_s = (752+618)/2*1000 # class 5, 2030
+
+    # 2023 ATB advanced scenario
+    # capEx_w = 1244*1000 # class 5, 2025
+    # capEx_w = 1096*1000 # class 5, 2030
+
+    # 2023 ATB advanced scenario
+    # capEx_s = 1202*1000 # class 5, 2025
+    # capEx_s = 917*1000 # class 5, 2030
+    
+    # OPERATION & MAINTENANCE COSTS
     # Define operations & maintenance costs for wind and solar (in USD/MW/yr)
-    om_w = 28.8*1000 
-    om_w = 27*1000  ## class 4, moderate, 2030
-    om_s = 20.5*1000 
-    om_s = 18*1000 ## class 5, moderate, 2030
+    # 2022 ATB advanced scenario
+    # om_w = 39*1000 # class 5, 2025
+    # om_w = 34*1000 # class 5, 2030
+
+    # 2022 ATB advanced scenario
+    # om_s = 17*1000 # class 5, 2025
+    # om_s = 13*1000 # class 5, 2030
     
-    ## old om values (class 5, 2030, from 2022 ATB; averages advanced and moderate scenarios)
-    om_w = (39+34)/2*1000 
-    om_s = (13+15)/2*1000 
+    # 2022 ATB advanced and moderate scenario
+    # om_w = (39+34)/2*1000 # class 5, 2030
+    # om_s = (13+15)/2*1000 # class 5, 2030
+    
+    # 2023 ATB advanced scenario
+    # om_w = 27*1000 # class 5, 2025
+    # om_w = 24*1000 # class 5, 2030
+    
+    # 2023 ATB advanced scenario
+    # om_s = 20*1000 # class 5, 2025
+    # om_s = 16*1000 # class 5, 2030
     
     ## Define capital costs for battery 
-    battPowerCost =  288*1000 # in USD/MW for moderate in 2025
-    battEnergyCost = 287*1000 # in USD/MWh for moderate in 2025
-    battOMcost = 50*1000 # in USD/MW-year for 6 hr moderate in 2025
-    battPowerCostFuture =  280*1000 # in USD/MW for moderate in 2037
-    battEnergyCostFuture = 199*1000 # in USD/MWh for moderate in 2037
-    battOMcostFuture = 37*1000 # in USD/MW-year for 6 hr moderate in 2037
+    # battPowerCost =  288*1000 # in USD/MW for moderate in 2025
+    # battEnergyCost = 287*1000 # in USD/MWh for moderate in 2025
+    # battOMcost = 50*1000 # in USD/MW-year for 6 hr moderate in 2025
+    # battPowerCostFuture =  280*1000 # in USD/MW for moderate in 2037
+    # battEnergyCostFuture = 199*1000 # in USD/MWh for moderate in 2037
+    # battOMcostFuture = 37*1000 # in USD/MW-year for 6 hr moderate in 2037
     
-    ## Battery efficiency
+    # BATTERY CAPITAL COSTS (2022 ATB)
+    # Define capital cost for battery (in USD/MW), for advanced in 2025
+    battPowerCost =  162*1000
+    # Define energy cost (in USD/MWh), for advanced in 2025
+    battEnergyCost = 211*1000
+    # Define operations & maintenance cost for battery (in USD/MW-year), for 6 hr advanced in 2025
+    battOMcost = 36*1000
+    # Define capital future cost for battery (in USD/MW), for advanced in 2037
+    battPowerCostFuture =  100*1000
+    # Define energy future cost for battery (in USD/MWh), for advanced in 2037
+    battEnergyCostFuture = 130*1000
+    # Define operations & maintenance future cost for battery (in USD/MW-year), for 6 hr advanced in 2037
+    battOMcostFuture = 22*1000
+    # Define battery efficiency
     rtEfficiency_sqrt = sqrt(0.85)
 
     # CAPITAL RECOVERY FACTOR
@@ -184,7 +331,7 @@ def runOptimization(PID):
     # TRANSMISSION CAPACITY
     # Define associated transmission substations capacity in MW
     ## size to wind capacity * certain percentage
-    tx_MW = cap_w * 1.2
+    tx_MW = cap_w * tx_scen
     # if cap_w <= 100:
     #     tx_MW = cap_w 
     # else:
@@ -197,9 +344,9 @@ def runOptimization(PID):
     ## WHOLESALE ELECTRICITY PRICES
     # Determine GEA associated with PID
     gea = pid_gea_df.loc[pid_gea_df['PID'] == PID, 'gea'].values[0]
-
+    
     # Set filepath where wholesale electricity prices are for each GEA
-    ePrice_df_folder = os.path.join(inputFolder, cambium_scen, 'Cash_Flow')
+    ePrice_df_folder = os.path.join(inputFolder, cambium_scen, PTC_scen)
     ePrice_path = os.path.join(ePrice_df_folder, f'cambiumHourly_{gea}.csv')
     ePrice_df_wind = pd.read_csv(ePrice_path)
 
@@ -209,7 +356,7 @@ def runOptimization(PID):
     cf_s_df = pd.read_csv(cf_s_path)
     ## subset to only the capacity factor column
     # cf_only_s_df = cf_s_df.loc[:,'energy_generation']
-
+    
     cf_w_path = os.path.join(inputFolder, 'SAM', 'Wind_Capacity_Factors', f'capacity_factor_PID{PID}.csv')
     # cf_w_path = inputFolder + '/PID1_CF_Wide_Matrix' + '/WIND_capacity_factor_PID' + str(PID) + '.csv'
     cf_w_df = pd.read_csv(cf_w_path)
@@ -268,8 +415,6 @@ def runOptimization(PID):
     ePrice_wind_hourly = pyomoInput_matrixToDict(ePrice_df_wind, 'hour', year_char)
     #ePrice_solar_hourly = next(iter(pyomoInput_matrixToDict(ePrice_df_wind, 'hour', year)))
 
-    ePrice_wind_hourly[1, str(year[0])]
-
     # Set parameter
     # model.eprice_wind = Param(model.t, default = ePrice_wind_hourly) # price of wind at each hour
     # model.eprice_solar = Param(model.t, default = ePrice_solar_hourly) # price of solar at each hour
@@ -293,7 +438,8 @@ def runOptimization(PID):
     wind_cf_hourly = pyomoInput_matrixToDict(cf_w_df, 'hour', year_char)
     solar_cf_hourly = pyomoInput_matrixToDict(cf_s_df, 'hour', year_char)
     #solar_cf_hourly = next(iter(pyomoInput_matrixToDict(cf_s_df, 'csv', 'hour', year)))
-
+    
+    
     model.cf_wind = Param(model.HOURYEAR, default = wind_cf_hourly)
     model.cf_solar = Param(model.HOURYEAR, default = solar_cf_hourly)
 
@@ -318,7 +464,8 @@ def runOptimization(PID):
     model.batt_power_cost_future = Param(default = battPowerCostFuture)
     model.batt_energy_cost_future = Param(default = battEnergyCostFuture)
     model.batt_om_future = Param(default = battOMcostFuture)
-    model.duration_batt = Param(default = 8)
+    #model.duration_batt = Param(default = 8)
+    model.denom_batt = Param(default = denom_batt)
 
     ''' ============================
     Set decision, slack, and battery variables
@@ -401,7 +548,7 @@ def runOptimization(PID):
                 (model.P_batt_max * model.batt_power_cost + model.E_batt_max * model.batt_energy_cost) +\
                     (model.P_batt_max * model.batt_om / model.CRFbat) +\
                   ((model.P_batt_max * model.batt_power_cost_future + model.E_batt_max * model.batt_energy_cost_future) +\
-                      (model.P_batt_max * model.batt_om_future / model.CRFbat))/ denom_batt # denominator needs to be reviewed
+                      (model.P_batt_max * model.batt_om_future / model.CRFbat))/ model.denom_batt # denominator needs to be reviewed
     model.lifetimeCosts = Constraint(rule = lifetimeCosts_rule)
     
     ## Constraint (5) ---
@@ -514,7 +661,7 @@ def runOptimization(PID):
     Execute optimization
     ============================ '''
     model_instance = model.create_instance()
-    results = opt.solve(model_instance, tee = True)
+    results = opt.solve(model_instance, tee = False)
 
     # Store variable values from optimization
     solar_capacity = model_instance.solar_capacity.value
@@ -526,76 +673,79 @@ def runOptimization(PID):
     solar_wind_ratio = solar_capacity/wind_capacity
     batteryCap = model_instance.P_batt_max.value
     batteryEnergy = model_instance.E_batt_max.value
-    print(solar_wind_ratio)
 
-    output_df.loc[output_df['PID']== PID] = [PID, solar_capacity, wind_capacity, solar_wind_ratio, tx_capacity, batteryCap, batteryEnergy, revenue, cost, profit]
-    #output_df.loc[output_df['PID']== PID] = [PID, solar_capacity, wind_capacity, solar_wind_ratio, tx_capacity, revenue, cost, profit]
-
-# actualGen = model_instance.actualGen.extract_values()
-# actualGen_df = pd.DataFrame.from_dict(actualGen, orient = "index")
-# actualGen_df_path = os.path.join(inputFolder, 'results/' + scenario + '/model_results_test_actualGen.csv')
-# actualGen_df.to_csv(actualGen_df_path, index = True)
-
-# potentialGen = model_instance.potentialGen.extract_values()
-# potentialGen_df = pd.DataFrame.from_dict(potentialGen, orient = "index")
-# potentialGen_df_path = os.path.join(inputFolder, 'results/' + scenario + '/model_results_test_potentialGen.csv')
-# potentialGen_df.to_csv(potentialGen_df_path, index = True)
-
-# output_df.to_csv(output_df_path, index = False)
-
-# export = model_instance.Export_t.extract_values()
-# export_df = pd.DataFrame.from_dict(export, orient = "index")
-# export_df_path = os.path.join(inputFolder, 'results/' + scenario + '/model_results_test_export.csv')
-# export_df.to_csv(export_df_path, index = True)
-
-# discharge = model_instance.P_dischar_t.extract_values()
-# discharge_df = pd.DataFrame.from_dict(discharge, orient = "index")
-# discharge_df_path = os.path.join(inputFolder, 'results/' + scenario + '/model_results_test_discharge.csv')
-# discharge_df.to_csv(discharge_df_path, index = True)
-
-# charge = model_instance.P_char_t.extract_values()
-# charge_df = pd.DataFrame.from_dict(charge, orient = "index")
-# charge_df_path = os.path.join(inputFolder, 'results/' + scenario + '/model_results_test_charge.csv')
-# charge_df.to_csv(charge_df_path, index = True)
+    # append rows to output_df
+    output_df = output_df_arg.append({'PID' : int(PID), 
+                    'solar_capacity' : solar_capacity, 
+                    'wind_capacity' : wind_capacity, 
+                    'solar_wind_ratio' : solar_wind_ratio, 
+                    'tx_capacity' : tx_capacity, 
+                    'batteryCap' : batteryCap, 
+                    'batteryEnergy': batteryEnergy, 
+                    'revenue': revenue, 
+                    'cost': cost, 
+                    'profit': profit}, ignore_index = True)
+    
+    return output_df
 
 
 ''' ============================
 Define optimization function given a list 
 ============================ '''
 
-def runOptimizationLoop(PID_list):
+def runOptimizationLoop(PID_list, output_df_arg):
     i = 0 
     for PID in PID_list:
         while True:
             try: 
                 i = i + 1
                 #print(i)
-                runOptimization(PID)
-                if i == 300:
-                    output_df.to_csv(output_df_path, index = False)
-                    print('Saved to file')
-                    i = 0
+                output_df_arg = runOptimization(PID, output_df_arg)
+                output_df_arg.to_csv(output_df_path_iterations, index = False)
+                # if i == 300:
+                #     output_df.to_csv(output_df_path, index = False)
+                #     print('Saved to file')
+                #     i = 0
             except Exception as exc:
                 print(exc)
                 # Save df to csv
-                output_df.to_csv(output_df_path, index = False)
+                # output_df.to_csv(output_df_path, index = False)
+                return output_df_arg
+                output_df_arg.to_csv(output_df_path_iterations, index = False)
                 # PAUSE
                 # time.sleep(5)
                 # continue
             break  
-        
+    
+    return output_df_arg
     # Save df to csv
-    output_df.to_csv(output_df_path, index = False)
+    #output_df.to_csv(output_df_path, index = False)
 
 ''' ============================
 Execute optimization loop
 ============================ '''
 
-PID_start = 1
-PID_end = PID_start + 10
 start_time = time.time()
-PID_list_in = list(range(PID_start, PID_end, 1))
-PID_list_in = list([2,6])
-runOptimizationLoop(PID_list_in)  
+
+output_df_complete = runOptimizationLoop(list_batch_iter, output_df)  
+
+#runOptimizationLoop(list_batch_iter, output_df)
+
+print("**** Completed loop for PID starting with", str(list_batch_iter[0]), "and ending with", str(list_batch_iter[-1]))
+
+## wait for all jobs to be completed
+comm.Barrier()
+if i_job == 0:
+    # Receive job sent by the other non-master processes 
+    all_output_df_complete = [output_df_complete] + [comm.recv(source = i, tag = 11) for i in range(1, N_jobs)]
+    ## combine results into a single dataframe 
+    all_output_df_complete = pd.concat(all_output_df_complete, axis = 0)
+    ## save results to csv
+    all_output_df_complete.to_csv(output_df_path)
+
+else:
+    comm.send(output_df_complete, dest = 0, tag = 11)
+
 end_time = time.time()
-print('Time taken:', end_time - start_time, 'seconds')  
+
+print('Time taken:', end_time - start_time, 'seconds')
