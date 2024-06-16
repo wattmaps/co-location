@@ -4,3 +4,5 @@
 **/*.gdb
 **/*.DS_Store
 *.Rmd
+.Rproj.user
+/data
