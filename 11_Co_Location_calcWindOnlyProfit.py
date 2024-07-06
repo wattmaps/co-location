@@ -19,7 +19,6 @@ start_time = time.time()
 current_dir = os.getcwd()
 print(current_dir)
 
-current_dir = "/Users/grace/Documents/Wattmaps/co-location"
 inputFolder = os.path.join(current_dir, 'data')
 
 ## Use specific PIDS
