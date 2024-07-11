@@ -255,27 +255,30 @@ def runWindCost(PID, output_df_arg):
     LVOE = revenue/potentialGen_wind_lifetime_discounted
     NVOE = profit/potentialGen_wind_lifetime_discounted
     
-    # append rows to output_df
-    output_df = output_df_arg.append({'PID' : int(PID), 
-                    'solar_capacity' : "NA", 
-                    'wind_capacity' : cap_w, 
-                    'solar_wind_ratio' : "NA", 
-                    'tx_capacity' : tx_MW, 
-                    'batteryCap' : "NA", 
-                    'batteryEnergy': "NA", 
-                    'revenue': revenue, 
-                    'cost': costs, 
-                    'profit': profit,
-                    'LCOE': LCOE,
-                    'LVOE': LVOE,
-                    'NVOE': NVOE,
-                    'potentialGen_wind_lifetime': potentialGen_wind_lifetime,
-                    'potentialGen_solar_lifetime': "NA",
-                    'solar_wind_ratio_potentialGen': "NA", 
-                    "actualGen_lifetime": "NA",
-                    "potentialGen_lifetime": "NA",
-                    "exportGen_lifetime": "NA",
-                    "curtailment": "NA"}, ignore_index = True)
+    # Create a new row as a DataFrame
+    new_row = pd.DataFrame({'PID' : [int(PID)], 
+                            'solar_capacity' : ["NA"], 
+                            'wind_capacity' : [cap_w], 
+                            'solar_wind_ratio' : ["NA"], 
+                            'tx_capacity' : [tx_MW], 
+                            'batteryCap' : ["NA"], 
+                            'batteryEnergy': ["NA"], 
+                            'revenue': [revenue], 
+                            'cost': [costs], 
+                            'profit': [profit],
+                            'LCOE': [LCOE],
+                            'LVOE': [LVOE],
+                            'NVOE': [NVOE],
+                            'potentialGen_wind_lifetime': [potentialGen_wind_lifetime],
+                            'potentialGen_solar_lifetime': ["NA"],
+                            'solar_wind_ratio_potentialGen': ["NA"], 
+                            "actualGen_lifetime": ["NA"],
+                            "potentialGen_lifetime": ["NA"],
+                            "exportGen_lifetime": ["NA"],
+                            "curtailment": ["NA"]})
+    
+    # Concatenate new row to output DataFrame
+    output_df = pd.concat([output_df_arg, new_row], ignore_index=True)
     
     return output_df
 
