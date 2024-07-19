@@ -7,3 +7,5 @@
 .Rproj.user
 /data
 /archive
+scratch.R
+*.pdf
