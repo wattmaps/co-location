@@ -4,50 +4,150 @@ library(paletteer)
 library(ggrepel)
 library(patchwork)
 
+# options(scipen = 10000)
+
 subset_scenarios <- read_csv(here::here('results', 'subset_scenarios.csv'))
 
-sample <- subset_scenarios %>%
-  filter(scenario %in% c(1, 2, 5, 6, 7, 9, 10, 11, 12)) %>%
-  mutate(scenario = as.factor(scenario))
+# Subset Midcase/BAU scenarios, PTC does not phaseout
+no_ptc_scenarios <- subset_scenarios %>%
+  filter(ptc == 'No phaseout') %>%
+  filter(cambium == 'Midcase') %>%
+  mutate(scenario = as.factor(scenario),
+         tx_availability = as.factor(tx_availability),
+         # Find battery capacity as a percentage of solar capacity
+         pct_batteryCap = (batteryCap/solar_capacity) * 100,
+         # Find annual average generation exported
+         mean_annual_exportGen = exportGen_lifetime/30) 
+
+# Subset Midcase/BAU scenarios, PTC phaseout
+ptc_scenarios <- subset_scenarios %>%
+  filter(ptc == 'Phaseout') %>%
+  filter(cambium == 'Midcase') %>%
+  mutate(scenario = as.factor(scenario),
+         tx_availability = as.factor(tx_availability),
+         # Find battery capacity as a percentage of solar capacity
+         pct_batteryCap = (batteryCap/solar_capacity) * 100,
+         # Find annual average generation exported
+         mean_annual_exportGen = exportGen_lifetime/30)
+
+# View scenario numbers 
+# no_ptc_scenarios <- as.character(unique(no_ptc_scenarios$scenario))
+# ptc_scenarios <- as.character(unique(ptc_scenarios$scenario))
 
 # Box and whisker plot for solar-wind ratio distribution ----
-fig_1_1 <- sample %>%
-  ggplot(aes(y = solar_wind_ratio, group = scenario, fill = scenario)) + 
-  geom_boxplot(alpha = 0.7) +
+fig_1_1 <- ptc_scenarios %>%
+  ggplot(aes(y = solar_wind_ratio, group = scenario, fill = tx_availability)) + 
+  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+  ylim(c(0.0, 2.0)) +
   paletteer::scale_fill_paletteer_d('NatParksPalettes::Olympic') +
-  labs(y = 'Solar to Wind Ratio') +
+  labs(y = str_wrap('Ratio of solar to wind installed capacity', width = 12)) +
   theme_classic() +
-  theme(legend.position = 'top',
-        legend.key.width = unit(2, 'cm'),
-        legend.spacing.y = unit(5, 'cm'),
+  theme(legend.position = 'non',
         legend.title = element_blank(),
         axis.title.x = element_blank(),
         axis.ticks.x = element_blank(),
         axis.text.x = element_blank())
 
-# Box and whisker plot for difference in co-location versus wind-only profits ----
-fig_1_2 <- sample %>%
-  ggplot(aes(y = diff_profit, group = scenario, fill = scenario)) + 
-  geom_boxplot(alpha = 0.7) +
+fig_1_2 <- no_ptc_scenarios %>%
+  ggplot(aes(y = solar_wind_ratio, group = scenario, fill = tx_availability)) + 
+  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+  ylim(c(0.0, 2.0)) +
   paletteer::scale_fill_paletteer_d('NatParksPalettes::Olympic') +
-  labs(y = 'Difference in Profit (USD)') +
+  labs(y = str_wrap('Ratio of solar to wind installed capacity', width = 12)) +
   theme_classic() +
   theme(legend.position = 'non',
+        legend.title = element_blank(),
+        axis.title.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.y = element_blank())
+
+# Box and whisker plot for difference in co-location versus wind-only profits ----
+fig_1_3 <- ptc_scenarios %>%
+  ggplot(aes(y = diff_profit, group = scenario, fill = tx_availability)) + 
+  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+  ylim(c(-5.0, 10.0)) +
+  paletteer::scale_fill_paletteer_d('NatParksPalettes::Olympic') +
+  labs(y = str_wrap('Difference in lifetime profit (USD/MWh)', width = 12)) +
+  theme_classic() +
+  theme(legend.position = 'non',
+        legend.title = element_blank(),
         axis.title.x = element_blank(),
         axis.ticks.x = element_blank(),
         axis.text.x = element_blank())
+
+fig_1_4 <- no_ptc_scenarios %>%
+  ggplot(aes(y = diff_profit, group = scenario, fill = tx_availability)) + 
+  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+  ylim(c(-5.0, 10.0)) +
+  paletteer::scale_fill_paletteer_d('NatParksPalettes::Olympic') +
+  labs(y = str_wrap('Difference in lifetime profit (USD/MWh)', width = 12)) +
+  theme_classic() +
+  theme(legend.position = 'non',
+        legend.title = element_blank(),
+        axis.title.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.y = element_blank())
 
 # Box and whisker plot for total amount of electricity production ----
-fig_1_3 <- sample %>%
-  ggplot(aes(y = exportGen_lifetime, group = scenario, fill = scenario)) + 
-  geom_boxplot(alpha = 0.7) +
+fig_1_5 <- ptc_scenarios %>%
+  ggplot(aes(y = mean_annual_exportGen, group = scenario, fill = tx_availability)) + 
+  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
   paletteer::scale_fill_paletteer_d('NatParksPalettes::Olympic') +
-  labs(y = 'Lifetime Export Generation') +
+  labs(y = str_wrap('Annual average generation exported (MWh/yr)', width = 12)) +
+  scale_y_continuous(limits = c(0.00, 3000000.0), labels = scales::comma) +
   theme_classic() +
   theme(legend.position = 'non',
+        legend.title = element_blank(),
         axis.title.x = element_blank(),
         axis.ticks.x = element_blank(),
         axis.text.x = element_blank())
 
+fig_1_6 <- no_ptc_scenarios %>%
+  ggplot(aes(y = mean_annual_exportGen, group = scenario, fill = tx_availability)) + 
+  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+  paletteer::scale_fill_paletteer_d('NatParksPalettes::Olympic') +
+  labs(y = str_wrap('Annual average generation exported (MWh/yr)', width = 12)) +
+  scale_y_continuous(limits = c(0.00, 3000000.0), labels = scales::comma) +
+  theme_classic() +
+  theme(legend.position = 'non',
+        legend.title = element_blank(),
+        axis.title.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.y = element_blank())
+
+# Box and whisker plot for battery capacity as a percentage of solar capacity ----
+fig_1_7 <- ptc_scenarios %>%
+  ggplot(aes(y = pct_batteryCap, x = scenario, group = scenario, fill = tx_availability)) + 
+  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+  ylim(c(0.00, 100.0)) +
+  paletteer::scale_fill_paletteer_d('NatParksPalettes::Olympic') +
+  labs(y = str_wrap('Battery capacity as percent of solar capacity', width = 12), x = 'Scenario') +
+  theme_classic() +
+  theme(legend.position = 'non',
+        legend.title = element_blank())
+
+fig_1_8 <- no_ptc_scenarios %>%
+  ggplot(aes(y = pct_batteryCap, x = scenario, group = scenario, fill = tx_availability)) + 
+  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+  ylim(c(0.00, 100.0)) +
+  paletteer::scale_fill_paletteer_d('NatParksPalettes::Olympic') +
+  labs(y = str_wrap('Battery capacity as percent of solar capacity', width = 12), x = 'Scenario') +
+  theme_classic() +
+  theme(legend.position = 'bottom',
+        legend.title = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.y = element_blank()) 
+
 # Stitch box and whisker plots into Figure 1 ----
-fig_1_1 / fig_1_2 / fig_1_3
+row_1 <- fig_1_1 + fig_1_2
+row_2 <- fig_1_3 + fig_1_4
+row_3 <- fig_1_5 + fig_1_6
+row_4 <- fig_1_7 + fig_1_8
+
+row_1 / row_2 / row_3 / row_4
