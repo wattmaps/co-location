@@ -89,8 +89,6 @@ output_df = pd.DataFrame(columns = ['PID',
                                     'wind_capacity', 
                                     'solar_wind_ratio', 
                                     'tx_capacity', 
-                                    'batteryCap', 
-                                    'batteryEnergy', 
                                     'revenue', 
                                     'cost', 
                                     'profit',
@@ -124,9 +122,9 @@ backfillNum = sys.argv[9]
 Set filepath for combined results
 ============================ '''
 
-scenario_foldername_iter = cambium_scen + "_" + PTC_scen + "_" + ATBreleaseYr_scen + "_" + ATBcost_scen + "_" + ATBcapexYr_scen + "_" + tx_scen + "_" + scen_num
-scenario_filename_combined = cambium_scen + "_" + PTC_scen + "_" + ATBreleaseYr_scen + "_" + ATBcost_scen + "_" + ATBcapexYr_scen + "_" + tx_scen + "_" + scen_num  + ".csv"
-scenario_filename_combined_missingPIDs = cambium_scen + "_" + PTC_scen + "_" + ATBreleaseYr_scen + "_" + ATBcost_scen + "_" + ATBcapexYr_scen + "_" + tx_scen + "_" + scen_num + "_"  + mode + "_missingPIDs" + ".csv"
+scenario_foldername_iter = "WindOnly_" + cambium_scen + "_" + PTC_scen + "_" + ATBreleaseYr_scen + "_" + ATBcost_scen + "_" + ATBcapexYr_scen + "_" + tx_scen + "_" + scen_num
+scenario_filename_combined = "WindOnly_" + cambium_scen + "_" + PTC_scen + "_" + ATBreleaseYr_scen + "_" + ATBcost_scen + "_" + ATBcapexYr_scen + "_" + tx_scen + "_" + scen_num  + ".csv"
+scenario_filename_combined_missingPIDs = "WindOnly_" + cambium_scen + "_" + PTC_scen + "_" + ATBreleaseYr_scen + "_" + ATBcost_scen + "_" + ATBcapexYr_scen + "_" + tx_scen + "_" + scen_num + "_"  + mode + "_missingPIDs" + ".csv"
 
 output_df_path_iterationsFolder = os.path.join(current_dir, 'results', 'HPCscenarios', scenario_foldername_iter)
 output_df_path = os.path.join(current_dir, 'results', 'HPCscenarios', scenario_filename_combined)
@@ -205,7 +203,7 @@ if mode == "backfill":
 Set filepath for each iterative result
 ============================ '''
 
-scenario_filename_iter = cambium_scen + "_" + PTC_scen + "_" + ATBreleaseYr_scen + "_" + ATBcost_scen + "_" + ATBcapexYr_scen + "_" + tx_scen + "_" + scen_num + "_" + str(i_job)  + ".csv"
+scenario_filename_iter = "WindOnly_" + cambium_scen + "_" + PTC_scen + "_" + ATBreleaseYr_scen + "_" + ATBcost_scen + "_" + ATBcapexYr_scen + "_" + tx_scen + "_" + scen_num + "_" + str(i_job)  + ".csv"
 
 # Set file path for model results csv
 output_df_path_iterations = os.path.join(current_dir, 'results', 'HPCscenarios', scenario_foldername_iter, scenario_filename_iter)
