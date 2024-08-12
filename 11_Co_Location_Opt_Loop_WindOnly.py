@@ -637,7 +637,7 @@ def runOptimization(PID, output_df_arg):
     # Losses while discharging in time t
     # model.L_dischar_t = Var(model.HOURYEAR, within=NonNegativeReals)
     # Export of electricity to grid in time t
-    # model.Export_t = Var(model.HOURYEAR, within=NonNegativeReals)
+    model.Export_t = Var(model.HOURYEAR, within=NonNegativeReals)
 
     ''' ============================
     Define objective function
