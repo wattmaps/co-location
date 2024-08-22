@@ -84,25 +84,25 @@ Initialize df and filepath
 ============================ '''
 
 # Create a df with column names
-output_df = pd.DataFrame(columns = ['PID', 
-                                    'solar_capacity', 
-                                    'wind_capacity', 
-                                    'solar_wind_ratio', 
-                                    'tx_capacity', 
-                                    'batteryCap', 
-                                    'batteryEnergy', 
-                                    'revenue', 
-                                    'cost', 
-                                    'profit',
-                                    'LCOE',
-                                    'LVOE',
-                                    'NVOE',
-                                    'potentialGen_wind_lifetime',
-                                    'potentialGen_solar_lifetime',
-                                    'solar_wind_ratio_potentialGen', 
-                                    "actualGen_lifetime",
-                                    "potentialGen_lifetime",
-                                    "export_lifetime",
+output_df = pd.DataFrame(columns = ['PID',\
+                                    'solar_capacity', \
+                                    'wind_capacity', \
+                                    'solar_wind_ratio', \
+                                    'tx_capacity', \
+                                    'batteryCap', \
+                                    'batteryEnergy', \
+                                    'revenue', \
+                                    'cost', \
+                                    'profit',\
+                                    'LCOE',\
+                                    'LVOE',\
+                                    'NVOE',\
+                                    'potentialGen_wind_lifetime',\
+                                    'potentialGen_solar_lifetime',\
+                                    'solar_wind_ratio_potentialGen', \
+                                    "actualGen_lifetime",\
+                                    "potentialGen_lifetime",\
+                                    "export_lifetime",\
                                     "curtailment"])
 
 ''' ============================
@@ -830,8 +830,6 @@ def runOptimization(PID, output_df_arg):
     # === ACTUAL GENERATION    
     actualGen = model_instance.actualGen.extract_values()
     actualGen_df = pd.DataFrame.from_dict(actualGen, orient = "index")
-    #actualGen_df_path = os.path.join(inputFolder, 'results/' + scenario + '/model_results_test_actualGen.csv')
-    #actualGen_df.to_csv(actualGen_df_path, index = True)
     actualGen_df_parsed = parseTimeSeries(actualGen_df, "actualGen")
     actualGen_df_annualSum = actualGen_df_parsed[["actualGen", "year"]].groupby("year").sum()
     actualGen_lifetime = actualGen_df_annualSum['actualGen'].sum()
@@ -839,8 +837,6 @@ def runOptimization(PID, output_df_arg):
     # === POTENTIAL GENERATION
     potentialGen = model_instance.potentialGen.extract_values()
     potentialGen_df = pd.DataFrame.from_dict(potentialGen, orient = "index")
-    #potentialGen_df_path = os.path.join(inputFolder, 'results/' + scenario + '/model_results_test_potentialGen.csv')
-    #potentialGen_df.to_csv(potentialGen_df_path, index = True)
     potentialGen_df_parsed = parseTimeSeries(potentialGen_df, "potentialGen")
     potentialGen_df_annualSum = potentialGen_df_parsed[["potentialGen", "year"]].groupby("year").sum()
     potentialGen_lifetime = potentialGen_df_annualSum['potentialGen'].sum()
@@ -861,9 +857,6 @@ def runOptimization(PID, output_df_arg):
     export_df_annualSum['export_discounted'] = export_df_annualSum['export'] / (1+d)**export_df_annualSum['year']
     export_lifetime_discounted = export_df_annualSum['export_discounted'].sum()
     export_lifetime = export_df_annualSum['export'].sum()
-    
-    # export_df_path = os.path.join(inputFolder, 'results/' + scenario + '/model_results_test_export.csv')
-    # export_df.to_csv(export_df_path, index = True)
     
     # === REVENUE 
     eprice_wind = model_instance.eprice_wind.extract_values()
@@ -892,16 +885,12 @@ def runOptimization(PID, output_df_arg):
     # === BATTERY DISCHARGE
     discharge = model_instance.P_dischar_t.extract_values()
     discharge_df = pd.DataFrame.from_dict(discharge, orient = "index")
-    # discharge_df_path = os.path.join(inputFolder, 'results/' + scenario + '/model_results_test_discharge.csv')
-    # discharge_df.to_csv(discharge_df_path, index = True)
     discharge_df_parsed = parseTimeSeries(discharge_df, "discharge")
     discharge_df_annualSum = discharge_df_parsed[["discharge", "year"]].groupby("year").sum()
 
     # === BATTERY CHARGE
     charge = model_instance.P_char_t.extract_values()
     charge_df = pd.DataFrame.from_dict(charge, orient = "index")
-    # charge_df_path = os.path.join(inputFolder, 'results/' + scenario + '/model_results_test_charge.csv')
-    # charge_df.to_csv(charge_df_path, index = True)
     charge_df_parsed = parseTimeSeries(charge_df, "charge")
     charge_df_annualSum = charge_df_parsed[["charge", "year"]].groupby("year").sum()
     
