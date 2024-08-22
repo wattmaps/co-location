@@ -249,6 +249,9 @@ cap_w_df = pd.read_csv(cap_w_path)
 pid_gea_file = os.path.join(inputFolder, 'PID_Attributes', 'GEAs.csv')
 pid_gea_df = pd.read_csv(pid_gea_file)
 
+# Read csv for discount by year
+discount_df = os.path.join(inputFolder, 'discount_time_series.csv')
+
 ''' ============================
 Define optimization function given a single value
 ============================ '''
@@ -556,6 +559,10 @@ def runOptimization(PID, output_df_arg):
     ## Adapted from wind_zones_v2 script
     model.eprice_wind = Param(model.HOURYEAR, default = ePrice_wind_hourly) # price of wind at each hour
     #model.eprice_solar = Param(model.HOURYEAR, default = ePrice_solar_hourly) # price of solar at each hour
+    
+    # Discount
+    discount_df_hourly = pyomoInput_matrixToDict(discount_df, 'hour', year_char)
+    model.discount = Param(model.HOURYEAR, default = discount_df_hourly)
 
     ## CAPACITY FACTORS ---
     # Extract wind capacity factor as vector
@@ -591,6 +598,8 @@ def runOptimization(PID, output_df_arg):
     model.pot_w = Param(default = cap_w)
     model.pot_s = Param(default = cap_s)
     model.tx_capacity = Param(default = tx_MW)
+    # model.d = Param(default = d)
+
     # model.batt_rtEff_sqrt = Param(default = rtEfficiency_sqrt)
     # model.batt_power_cost = Param(default = battPowerCost)
     # model.batt_energy_cost = Param(default = battEnergyCost)
@@ -618,6 +627,8 @@ def runOptimization(PID, output_df_arg):
     model.revenue = Var()
     # Slack variable for lifetime costs
     model.cost = Var()
+    # Slack variable for export lifetime discounted
+    model.export_lifetime_discounted_var = Var()
     
     # # BATTERY VARIABLES ---
     # Maximum energy storage of battery
@@ -645,7 +656,7 @@ def runOptimization(PID, output_df_arg):
     
     # Maximize profit
     def obj_rule(model):
-        return model.revenue - model.cost
+        return (model.revenue - model.cost)/model.export_lifetime_discounted_var
     model.obj = Objective(rule = obj_rule, sense = maximize)
 
     ''' ============================
@@ -697,6 +708,11 @@ def runOptimization(PID, output_df_arg):
         #return model.revenue == sum(sum(model.actualGen[t, y] * model.eprice_wind[t, y] for t in model.t) for y in model.y)
         return model.revenue == sum(sum(model.Export_t[t, y] * model.eprice_wind[t, y] for t in model.t) for y in model.y)
     model.lifetimeRevenue = Constraint(rule = lifetimeRevenue_rule)
+
+    # Define the constraint for lifetime discounted export
+    def Export_t_discounted_rule(model):
+        return model.export_lifetime_discounted_var == sum(sum(model.Export_t[t, y] / model.discount[t, y] for t in model.t) for y in model.y)
+    model.export_lifetime_discounted = Constraint(rule = Export_t_discounted_rule) 
 
     # Constraint (7) ---
     # Check that transmission capacity is less than wind capacity 
