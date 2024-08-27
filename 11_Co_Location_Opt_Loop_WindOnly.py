@@ -232,7 +232,7 @@ pid_substation_file = os.path.join(inputFolder, "PID_Attributes", "substation.cs
 pid_substation_df = pd.read_csv(pid_substation_file)
 
 # Set file path and read csv for potential capacity for solar
-cap_s_path = os.path.join(inputFolder, "Potential_Installed_Capacity", "solar_land_capacity.csv")
+cap_s_path = os.path.join(inputFolder, "Potential_Installed_Capacity", "solar_land_capacity_WindOnly.csv")
 cap_s_df = pd.read_csv(cap_s_path)
 
 # Set file path and read csv for potential capacity for wind
@@ -404,7 +404,7 @@ def runOptimization(PID, output_df_arg):
     ePrice_df_wind = pd.read_csv(ePrice_path)
 
     #### Solar and Capacity Factors ####
-    cf_s_path = os.path.join(inputFolder, "SAM", "Solar_Capacity_Factors", f"capacity_factor_PID{PID}.csv")
+    cf_s_path = os.path.join(inputFolder, "SAM", "Solar_Capacity_Factors_WindOnly", "capacity_factor_WindOnly.csv")
     cf_s_df = pd.read_csv(cf_s_path)
     cf_w_path = os.path.join(inputFolder, "SAM", "Wind_Capacity_Factors", f"capacity_factor_PID{PID}.csv")
     cf_w_df = pd.read_csv(cf_w_path)
