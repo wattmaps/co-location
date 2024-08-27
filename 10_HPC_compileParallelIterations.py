@@ -2,9 +2,6 @@
 Import packages and set directory
 ============================ '''
 
-# install mpi4py available on conda
-# check cnsi website and check for mpi workshops
-
 import os, sys
 import glob
 import time
@@ -17,15 +14,9 @@ start_time = time.time()
 current_dir = os.getcwd()
 print(current_dir)
 
-#current_dir = "/Users/grace/Documents/Wattmaps/co-location"
 inputFolder = os.path.join(current_dir, 'data')
 
 seq = pd.read_csv(os.path.join(inputFolder, 'uswtdb', 'us_PID_cords_15.csv'))
-
-
-''' ============================
-Initialize df and filepath
-============================ '''
 
 # Create a df with column names
 output_df = pd.DataFrame(columns = ['PID', 'solar_capacity', 'wind_capacity', 'solar_wind_ratio', 'tx_capacity', 'batteryCap', 'batteryEnergy', 'revenue', 'cost', 'profit'])
@@ -56,16 +47,15 @@ output_df_path = os.path.join(current_dir, 'results', 'HPCscenarios', scenario_f
 output_df_path_missingPIDs = os.path.join(current_dir, 'results', 'HPCscenarios', scenario_filename_combined_missingPIDs)
 
 ''' ============================
-combine csvs into one df and save combined csv
+Combine into singular DataFrame
 ============================ '''
     
-## ## combine csvs into one
 print("Concatenating iterations into one csv and save to drive")
 all_csvs_iter = glob.glob(os.path.join(output_df_path_iterationsFolder, "*.csv"))
 combined_df = pd.concat((pd.read_csv(f) for f in all_csvs_iter), axis = 0, ignore_index=True)
 combined_df.to_csv(output_df_path)
 
-## produce list of PIDs that are still missing/yet to be run
+# Produce list of PIDs that are still missing/yet to be run
 missingPIDs_list = list(set(seq['PID'].tolist()) - set(combined_df['PID'].tolist()))
 
 print("Missing PIDs:", missingPIDs_list)
