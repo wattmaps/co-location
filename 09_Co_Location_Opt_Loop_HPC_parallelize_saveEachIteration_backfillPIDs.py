@@ -395,6 +395,20 @@ def runOptimization(PID, output_df_arg):
 
     # Size transmission substation capacity by multiplying wind capacity and TX percentage
     tx_MW = cap_w * tx_scen
+
+    #### Wholesale Electricity Prices ####
+    # Determine GEA associated with PID
+    gea = pid_gea_df.loc[pid_gea_df["PID"] == PID, "gea"].values[0]
+    # Set filepath where wholesale electricity prices are for each GEA
+    ePrice_df_folder = os.path.join(inputFolder, cambium_scen + cambium_scen_yr_append, PTC_scen)
+    ePrice_path = os.path.join(ePrice_df_folder, f"cambiumHourly_{gea}.csv")
+    ePrice_df_wind = pd.read_csv(ePrice_path)
+
+    #### Solar and Capacity Factors ####
+    cf_s_path = os.path.join(inputFolder, "SAM", "Solar_Capacity_Factors", f"capacity_factor_PID{PID}.csv")
+    cf_s_df = pd.read_csv(cf_s_path)
+    cf_w_path = os.path.join(inputFolder, "SAM", "Wind_Capacity_Factors", f"capacity_factor_PID{PID}.csv")
+    cf_w_df = pd.read_csv(cf_w_path)
     
     """ ============================
     Initialize model
@@ -433,23 +447,9 @@ def runOptimization(PID, output_df_arg):
     Set vector parameters as dictionaries
     ============================ """
 
-    #### Wholesale Electricity Prices ####
-    # Determine GEA associated with PID
-    gea = pid_gea_df.loc[pid_gea_df["PID"] == PID, "gea"].values[0]
-    # Set filepath where wholesale electricity prices are for each GEA
-    ePrice_df_folder = os.path.join(inputFolder, cambium_scen + cambium_scen_yr_append, PTC_scen)
-    ePrice_path = os.path.join(ePrice_df_folder, f"cambiumHourly_{gea}.csv")
-    ePrice_df_wind = pd.read_csv(ePrice_path)
     ePrice_wind_hourly = pyomoInput_matrixToDict(ePrice_df_wind, "hour", year_char)
-    #ePrice_solar_hourly = next(iter(pyomoInput_matrixToDict(ePrice_df_wind, "hour", year)))
     model.eprice_wind = Param(model.HOURYEAR, default = ePrice_wind_hourly) # price of wind at each hour
     #model.eprice_solar = Param(model.HOURYEAR, default = ePrice_solar_hourly) # price of solar at each hour
-
-    #### Solar and Capacity Factors ####
-    cf_s_path = os.path.join(inputFolder, "SAM", "Solar_Capacity_Factors", f"capacity_factor_PID{PID}.csv")
-    cf_s_df = pd.read_csv(cf_s_path)
-    cf_w_path = os.path.join(inputFolder, "SAM", "Wind_Capacity_Factors", f"capacity_factor_PID{PID}.csv")
-    cf_w_df = pd.read_csv(cf_w_path)
     wind_cf_hourly = pyomoInput_matrixToDict(cf_w_df, "hour", year_char)
     solar_cf_hourly = pyomoInput_matrixToDict(cf_s_df, "hour", year_char)
     model.cf_wind = Param(model.HOURYEAR, default = wind_cf_hourly)
