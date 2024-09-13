@@ -150,6 +150,35 @@ fig_1_8 <- no_ptc_scenarios %>%
         axis.title.y = element_blank(),
         axis.text.y = element_blank())
 
+# Box and whisker plot for curtailment + battery losses ----
+fig_1_7_5 <- ptc_scenarios %>%
+  ggplot(aes(y = curtailment_bLoss, x = scenario, group = scenario, fill = tx_availability)) + 
+  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+  scale_y_continuous(limits = c(0.00, 0.35), labels = scales::comma) +
+  paletteer::scale_fill_paletteer_d('NatParksPalettes::Olympic') +
+  labs(y = str_wrap('Curtailment + battery losses', width = 12)) +
+  theme_classic() +
+  theme(legend.position = 'non',
+        legend.title = element_blank(),
+        axis.title.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.x = element_blank())
+
+fig_1_8_5 <- no_ptc_scenarios %>%
+  ggplot(aes(y = curtailment_bLoss, x = scenario, group = scenario, fill = tx_availability)) + 
+  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+  scale_y_continuous(limits = c(0.00, 0.35), labels = scales::comma) +
+  paletteer::scale_fill_paletteer_d('NatParksPalettes::Olympic') +
+  labs(y = str_wrap('Curtailment + battery losses', width = 12)) +
+  theme_classic() +
+  theme(legend.position = 'non',
+        legend.title = element_blank(),
+        axis.title.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.y = element_blank())
+
 # Box and whisker plot for curtailment ----
 fig_1_9 <- ptc_scenarios %>%
   ggplot(aes(y = curtailment_c, x = scenario, group = scenario, fill = tx_availability)) + 
@@ -178,6 +207,7 @@ row_1 <- fig_1_1 + fig_1_2
 row_2 <- fig_1_3 + fig_1_4
 row_3 <- fig_1_5 + fig_1_6
 row_4 <- fig_1_7 + fig_1_8
+row_5_0 <- fig_1_7_5 + fig_1_8_5 # for comparison, may remove 
 row_5 <- fig_1_9 + fig_1_10
 
-row_1 / row_2 / row_3 / row_4 / row_5
+row_1 / row_2 / row_3 / row_4 / row_5_0 / row_5
