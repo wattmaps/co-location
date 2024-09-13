@@ -50,8 +50,10 @@ for (i in index){
   
   # Calculate change in profit
   join_df <- join_df %>%
-    mutate(diff_profit = NVOE - windOnly_NVOE,
-           percent_profit = (diff_profit / windOnly_NVOE)*100) %>%
+    mutate(diff_profit = profit - windOnly_profit,
+           percent_profit = (diff_profit / windOnly_profit)*100,
+           curtailment_c = (potentialGen_lifetime - actualGen_lifetime)/potentialGen_lifetime,
+           curtailment_bLoss = ((potentialGen_lifetime - exportGen_lifetime)/potentialGen_lifetime)) %>%
     mutate(scenario = i) %>%
     arrange(PID)
   
@@ -89,7 +91,9 @@ all_scenarios <- all_scenarios %>%
          tx_availability = as.factor(if_else(scenario %in% index_tx_availability, '120', '100')))
 
 # Subset to keep sites with positive difference in profit 
-subset_scenarios <- all_scenarios %>% filter(percent_profit >= 0.01)
+subset_scenarios <- all_scenarios
+# subset_scenarios <- all_scenarios %>% filter(percent_profit >= 0.00) # _aboveZero.csv
+# subset_scenarios <- all_scenarios # _nofilter.csv
 
 # Read US PIDs CSV
 us_pids <- read_csv(here::here('data', 'uswtdb', 'us_PID_cords_15.csv'))
