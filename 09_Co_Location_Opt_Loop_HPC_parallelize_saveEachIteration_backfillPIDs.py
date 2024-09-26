@@ -99,14 +99,17 @@ scen_num = sys.argv[7]
 mode = sys.argv[8] # should be either "initial" or "backfill"
 backfillNum = sys.argv[9]
 
+solarCapAvail = sys.argv[10] ## "NoSolar" for windOnly or ## "YesSolar" for colocation
+batteryAvail = sys.argv[11] ## "NoBatt" or "YesBatt" ## whether or not to include battery 
+
 
 """ ============================
 Set file path for combined results
 ============================ """
 
-scenario_foldername_iter = cambium_scen + "_" + PTC_scen + "_" + ATBreleaseYr_scen + "_" + ATBcost_scen + "_" + ATBcapexYr_scen + "_" + tx_scen + "_" + scen_num
-scenario_filename_combined = cambium_scen + "_" + PTC_scen + "_" + ATBreleaseYr_scen + "_" + ATBcost_scen + "_" + ATBcapexYr_scen + "_" + tx_scen + "_" + scen_num  + ".csv"
-scenario_filename_combined_missingPIDs = cambium_scen + "_" + PTC_scen + "_" + ATBreleaseYr_scen + "_" + ATBcost_scen + "_" + ATBcapexYr_scen + "_" + tx_scen + "_" + scen_num + "_"  + mode + "_missingPIDs" + ".csv"
+scenario_foldername_iter = cambium_scen + "_" + PTC_scen + "_" + ATBreleaseYr_scen + "_" + ATBcost_scen + "_" + ATBcapexYr_scen + "_" + tx_scen + "_" + scen_num + "_" + solarCapAvail + "_" + batteryAvail
+scenario_filename_combined = cambium_scen + "_" + PTC_scen + "_" + ATBreleaseYr_scen + "_" + ATBcost_scen + "_" + ATBcapexYr_scen + "_" + tx_scen + "_" + scen_num  + "_" + solarCapAvail + "_" + batteryAvail +".csv"
+scenario_filename_combined_missingPIDs = cambium_scen + "_" + PTC_scen + "_" + ATBreleaseYr_scen + "_" + ATBcost_scen + "_" + ATBcapexYr_scen + "_" + tx_scen + "_" + scen_num + "_" + solarCapAvail + "_" + batteryAvail + "_" + mode + "_missingPIDs" + ".csv"
 
 output_df_path_iterationsFolder = os.path.join(current_dir, "results", "HPCscenarios", scenario_foldername_iter)
 output_df_path = os.path.join(current_dir, "results", "HPCscenarios", scenario_filename_combined)
@@ -526,7 +529,22 @@ def runOptimization(PID, output_df_arg):
     """ ============================
     Define constraints
     ============================ """
-
+    
+    if batteryAvail == "NoBatt":
+        ## Constraint (0)
+        ## Set battery capacity to ZERO for wind-only
+        def battCapZero_rule(model):
+            return model.P_batt_max == 0
+        model.battCapZero = Constraint(rule = battCapZero_rule)
+        
+    if solarCapAvail == "NoSolar":
+        ## Constraint (0)
+        ## Set solar capacity to ZERO for wind-only
+        def solarCapZero_rule(model):
+            return model.solar_capacity == 0
+        model.solarCapZero = Constraint(rule = solarCapZero_rule)
+    
+    
     ## Constraint (1) 
     ## Define potential generation = CF*capacity for wind and solar
     # combines both forms of generation

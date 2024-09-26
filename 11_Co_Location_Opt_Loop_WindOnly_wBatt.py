@@ -13,7 +13,6 @@ import numpy as np
 import shutil
 from pyomo.environ import *
 from pyomo.opt import SolverFactory
-from mpi4py import MPI
 
 start_time = time.time()
 
@@ -22,8 +21,14 @@ print(current_dir)
 
 inputFolder = os.path.join(current_dir, "data")
 
-# seq = pd.read_csv(os.path.join(inputFolder, "uswtdb", "us_PID_cords_15.csv"))
-seq = pd.DataFrame({'PID': [1]})
+location = "local" # "local" or "HPC"
+
+date = "092524"
+
+scenariosGroupName = "scenarios_WindOnlyOpt"
+
+seq = pd.read_csv(os.path.join(inputFolder, "uswtdb", "us_PID_cords_15.csv"))
+#seq = pd.DataFrame({'PID': [1]})
 
 solver = "cplex"
 
@@ -90,116 +95,185 @@ output_df = pd.DataFrame(columns = ["PID",\
 Set system arguments
 ============================ """
 
-cambium_scen = sys.argv[1] # should be either "Cambium22Electrification" or "Cambium22Midcase"
-PTC_scen = sys.argv[2] # should be either "NoPhaseout" or "YesPhaseout"
-ATBreleaseYr_scen = sys.argv[3] # should be either 2022 or 2023
-ATBcost_scen = sys.argv[4] # should be advanced or moderate
-ATBcapexYr_scen = sys.argv[5] # should be either "2025" or "2030"
-tx_scen = sys.argv[6] # should be either "100" or "120"
-scen_num = sys.argv[7]
-mode = sys.argv[8] # should be either "initial" or "backfill"
-backfillNum = sys.argv[9]
+
+cambium_scen = "Cambium22Midcase" # should be either "Cambium22Electrification" or "Cambium22Midcase"
+PTC_scen = "YesPhaseout" # should be either "NoPhaseout" or "YesPhaseout"
+ATBreleaseYr_scen = "2022" # should be either 2022 or 2023
+ATBcost_scen = "Advanced" # should be Advanced or moderate
+ATBcapexYr_scen = "2030" # should be either "2025" or "2030"
+tx_scen = "100" # should be either "100" or "120"
+scen_num = "15"
+mode = "initial" # should be either "initial" or "backfill"
+backfillNum = ""
+
+
+# cambium_scen = sys.argv[1] # should be either "Cambium22Electrification" or "Cambium22Midcase"
+# PTC_scen = sys.argv[2] # should be either "NoPhaseout" or "YesPhaseout"
+# ATBreleaseYr_scen = sys.argv[3] # should be either 2022 or 2023
+# ATBcost_scen = sys.argv[4] # should be advanced or moderate
+# ATBcapexYr_scen = sys.argv[5] # should be either "2025" or "2030"
+# tx_scen = sys.argv[6] # should be either "100" or "120"
+# scen_num = sys.argv[7]
+# mode = sys.argv[8] # should be either "initial" or "backfill"
+# backfillNum = sys.argv[9]
 
 """ ============================
-Set file path for combined results
+Set up HPC specific variables 
 ============================ """
 
-scenario_foldername_iter = cambium_scen + "_" + PTC_scen + "_" + ATBreleaseYr_scen + "_" + ATBcost_scen + "_" + ATBcapexYr_scen + "_" + tx_scen + "_" + scen_num
-scenario_filename_combined = cambium_scen + "_" + PTC_scen + "_" + ATBreleaseYr_scen + "_" + ATBcost_scen + "_" + ATBcapexYr_scen + "_" + tx_scen + "_" + scen_num  + ".csv"
-scenario_filename_combined_missingPIDs = cambium_scen + "_" + PTC_scen + "_" + ATBreleaseYr_scen + "_" + ATBcost_scen + "_" + ATBcapexYr_scen + "_" + tx_scen + "_" + scen_num + "_"  + mode + "_missingPIDs" + ".csv"
+if location == "HPC":
+    from mpi4py import MPI
 
-output_df_path_iterationsFolder = os.path.join(current_dir, "results", "HPCscenarios_WindOnly", scenario_foldername_iter)
-output_df_path = os.path.join(current_dir, "results", "HPCscenarios_WindOnly", scenario_filename_combined)
-output_df_path_missingPIDs = os.path.join(current_dir, "results", "HPCscenarios_WindOnly", scenario_filename_combined_missingPIDs)
-
-""" ============================
-Get subset of PIDs that did not run
-============================ """
-
-print("Checking whether this file exists:", output_df_path) 
-
-if mode == "backfill":
-    if os.path.isfile(output_df_path):
-        # read the csv
-        print("Reading compiled csv to get PIDs")
-        combined_df = pd.read_csv(output_df_path)
-    else: # combine csvs into one
-        print("Concatenating iterations into one csv to get PIDs")
-        all_csvs_iter = glob.glob(os.path.join(output_df_path_iterationsFolder, "*.csv"))
-        combined_df = pd.concat((pd.read_csv(f) for f in all_csvs_iter), axis = 0, ignore_index=True)
-
-        
-    PIDsList_finished = combined_df["PID"].tolist()
-    PIDsList_needToRun = list(set(seq["PID"].tolist()) - set(PIDsList_finished))
-    n_PIDs = len(PIDsList_needToRun)
+    """ ============================
+    Set file path for combined results
+    ============================ """
     
-else:
-    PIDsList_needToRun = seq["PID"].tolist()
-    n_PIDs = len(PIDsList_needToRun)
+    scenario_foldername_iter = cambium_scen + "_" + PTC_scen + "_" + ATBreleaseYr_scen + "_" + ATBcost_scen + "_" + ATBcapexYr_scen + "_" + tx_scen + "_" + scen_num
+    scenario_filename_combined = cambium_scen + "_" + PTC_scen + "_" + ATBreleaseYr_scen + "_" + ATBcost_scen + "_" + ATBcapexYr_scen + "_" + tx_scen + "_" + scen_num  + ".csv"
+    scenario_filename_combined_missingPIDs = cambium_scen + "_" + PTC_scen + "_" + ATBreleaseYr_scen + "_" + ATBcost_scen + "_" + ATBcapexYr_scen + "_" + tx_scen + "_" + scen_num + "_"  + mode + "_missingPIDs" + ".csv"
     
-print("working on", n_PIDs, "PIDs. List of PIDs: ", PIDsList_needToRun)
-
-""" ============================
-Set up parallel processing 
-============================ """
-
-# Define _get_node_info() function
-def get_node_info(verbose = False):
-    # Initialize MPI communication
-    comm = MPI.COMM_WORLD
-    # Extract total number of processes
-    size = comm.Get_size()
-    # Extract rank of current process
-    rank = comm.Get_rank()
-    # Extract name of processor
-    name = MPI.Get_processor_name()
-
-    # Print MPI job variables
-    if verbose:
-        print(">> MPI: Name: {} Rank: {} Size: {}".format(name, rank, size))
-
-    # Store rank, total number of processes, and MPI communicator object
-    return int(rank), int(size), comm
-
-# Gather MPI job variables
-i_job, N_jobs, comm = get_node_info()
-
-# Define chunks() function
-def chunks(lst, n):
-    # Split a list into chunks of size n
-    for i in range(0, len(lst), n):
-        yield lst[i:i + n]
-
-# Determine size of each chunk based on number of jobs (processes)
-if N_jobs > 1:
-    # If there are multiple jobs, divide total number of PIDs by the number of jobs
-    iter_length = floor(n_PIDs / (N_jobs - 1))
-else:
-    # If there is only one job, the entire list will be one chunk
-    iter_length = n_PIDs
-
-# Split list of PIDs into chunks
-list_batch = list(chunks(PIDsList_needToRun, iter_length))
-
-# Select chunk corresponding to current job
-list_batch_iter = list_batch[i_job]
-
-if mode == "backfill":
-    # Add 10 to the job number (avoids overwriting existing results)
-    i_job = (i_job + 1) * 100**(int(backfillNum))
-    # Update file name
-    scenario_filename_combined = scenario_filename_combined[:-4] + "_backfill.csv"
+    output_df_path_iterationsFolder = os.path.join(current_dir, "results", "HPCscenarios_WindOnly", scenario_foldername_iter)
     output_df_path = os.path.join(current_dir, "results", "HPCscenarios_WindOnly", scenario_filename_combined)
+    output_df_path_missingPIDs = os.path.join(current_dir, "results", "HPCscenarios_WindOnly", scenario_filename_combined_missingPIDs)
+    
+    """ ============================
+    Get subset of PIDs that did not run
+    ============================ """
+    
+    print("Checking whether this file exists:", output_df_path) 
+    
+    if mode == "backfill":
+        if os.path.isfile(output_df_path):
+            # read the csv
+            print("Reading compiled csv to get PIDs")
+            combined_df = pd.read_csv(output_df_path)
+        else: # combine csvs into one
+            print("Concatenating iterations into one csv to get PIDs")
+            all_csvs_iter = glob.glob(os.path.join(output_df_path_iterationsFolder, "*.csv"))
+            combined_df = pd.concat((pd.read_csv(f) for f in all_csvs_iter), axis = 0, ignore_index=True)
+    
+            
+        PIDsList_finished = combined_df["PID"].tolist()
+        PIDsList_needToRun = list(set(seq["PID"].tolist()) - set(PIDsList_finished))
+        n_PIDs = len(PIDsList_needToRun)
+        
+    else:
+        PIDsList_needToRun = seq["PID"].tolist()
+        n_PIDs = len(PIDsList_needToRun)
+        
+    print("working on", n_PIDs, "PIDs. List of PIDs: ", PIDsList_needToRun)
 
+    
+    """ ============================
+    Set up parallel processing 
+    ============================ """
+    
+    # Define _get_node_info() function
+    def get_node_info(verbose = False):
+        # Initialize MPI communication
+        comm = MPI.COMM_WORLD
+        # Extract total number of processes
+        size = comm.Get_size()
+        # Extract rank of current process
+        rank = comm.Get_rank()
+        # Extract name of processor
+        name = MPI.Get_processor_name()
+    
+        # Print MPI job variables
+        if verbose:
+            print(">> MPI: Name: {} Rank: {} Size: {}".format(name, rank, size))
+    
+        # Store rank, total number of processes, and MPI communicator object
+        return int(rank), int(size), comm
+    
+    # Gather MPI job variables
+    i_job, N_jobs, comm = get_node_info()
+    
+    # Define chunks() function
+    def chunks(lst, n):
+        # Split a list into chunks of size n
+        for i in range(0, len(lst), n):
+            yield lst[i:i + n]
+    
+    # Determine size of each chunk based on number of jobs (processes)
+    if N_jobs > 1:
+        # If there are multiple jobs, divide total number of PIDs by the number of jobs
+        iter_length = floor(n_PIDs / (N_jobs - 1))
+    else:
+        # If there is only one job, the entire list will be one chunk
+        iter_length = n_PIDs
+    
+    # Split list of PIDs into chunks
+    list_batch = list(chunks(PIDsList_needToRun, iter_length))
+    
+    # Select chunk corresponding to current job
+    list_batch_iter = list_batch[i_job]
+    
+    if mode == "backfill":
+        # Add 10 to the job number (avoids overwriting existing results)
+        i_job = (i_job + 1) * 100**(int(backfillNum))
+        # Update file name
+        scenario_filename_combined = scenario_filename_combined[:-4] + "_backfill.csv"
+        output_df_path = os.path.join(current_dir, "results", scenariosGroupName, scenario_filename_combined)
+
+    """ ============================
+    Set filepath for each iterative result
+    ============================ """
+    
+    scenario_filename_iter = cambium_scen + "_" + PTC_scen + "_" + ATBreleaseYr_scen + "_" + ATBcost_scen + "_" + ATBcapexYr_scen + "_" + tx_scen + "_" + scen_num + "_" + str(i_job)  + ".csv"
+    
+    # Set file path for model results csv
+    output_df_path_iterations = os.path.join(current_dir, "results", scenariosGroupName, scenario_foldername_iter, scenario_filename_iter)
+    
+    # Re-assign Cambium scenario variable to match 
+    if cambium_scen == "Cambium22Electrification":
+        cambium_scen = "Cambium22_Electrification"
+    if cambium_scen == "Cambium22Midcase":
+        cambium_scen = "Cambium22_Mid-case"
+    
+    # Re-assign PTC scenario variable to match
+    if PTC_scen == "NoPhaseout":
+        PTC_scen = "Cash_Flow_PTC_No_Phaseout"
+    if PTC_scen == "YesPhaseout":
+        PTC_scen = "Cash_Flow"
+    
+    # Re-assign TX scenario variable to match
+    if tx_scen == "100":
+        tx_scen = 1.0
+    if tx_scen == "120":
+        tx_scen = 1.2
+    
+    # Re-assign ATB sceanrio variable to match
+    if ATBcapexYr_scen == "2030":
+        cambium_scen_yr_append = "_2030"
+    if ATBcapexYr_scen == "2025":
+        cambium_scen_yr_append = ""
+        
 """ ============================
-Set filepath for each iterative result
+Set up LOCAL run specific variables 
 ============================ """
+if location == "local":
+    
+    PIDsList_needToRun = seq["PID"].tolist()
+    
+    """ ============================
+    Set file path for combined results
+    ============================ """
+    
+    scenario_foldername = cambium_scen + "_" + PTC_scen + "_" + ATBreleaseYr_scen + "_" + ATBcost_scen + "_" + ATBcapexYr_scen + "_" + tx_scen + "_" + scen_num
+    scenario_filename_combined = cambium_scen + "_" + PTC_scen + "_" + ATBreleaseYr_scen + "_" + ATBcost_scen + "_" + ATBcapexYr_scen + "_" + tx_scen + "_" + scen_num  + ".csv"
+    scenario_filename_combined_missingPIDs = cambium_scen + "_" + PTC_scen + "_" + ATBreleaseYr_scen + "_" + ATBcost_scen + "_" + ATBcapexYr_scen + "_" + tx_scen + "_" + scen_num + "_"  + mode + "_missingPIDs" + ".csv"
+    
+    output_df_path_missingPIDs = os.path.join(current_dir, "results", scenariosGroupName, scenario_filename_combined_missingPIDs)
+        
+    # Set file path for model results csv
+    scenario_foldername_path = os.path.join(current_dir, "results", scenariosGroupName + "_" + date)
+    output_df_path = os.path.join(scenario_foldername_path, scenario_filename_combined)
 
-scenario_filename_iter = cambium_scen + "_" + PTC_scen + "_" + ATBreleaseYr_scen + "_" + ATBcost_scen + "_" + ATBcapexYr_scen + "_" + tx_scen + "_" + scen_num + "_" + str(i_job)  + ".csv"
-
-# Set file path for model results csv
-output_df_path_iterations = os.path.join(current_dir, "results", "HPCscenarios_WindOnly", scenario_foldername_iter, scenario_filename_iter)
-
+    if not os.path.exists(scenario_foldername_path):
+        os.makedirs(scenario_foldername_path)
+        
+    
 # Re-assign Cambium scenario variable to match 
 if cambium_scen == "Cambium22Electrification":
     cambium_scen = "Cambium22_Electrification"
@@ -565,7 +639,7 @@ def runOptimization(PID, output_df_arg):
     def lifetimeCosts_rule(model):
         return model.cost == (model.solar_capacity*model.capEx_s) + ((model.solar_capacity*model.om_s)/model.CRF) + \
             (model.pot_w*model.capEx_w) + ((model.pot_w*model.om_w)/model.CRF) + \
-                (model.tx_capacity*model.capEx_tx) # + \
+                (model.tx_capacity*model.capEx_tx)  + \
                     (model.P_batt_max * model.batt_power_cost + model.E_batt_max * model.batt_energy_cost) +\
                         (model.P_batt_max * model.batt_om / model.CRFbat) +\
                             ((model.P_batt_max * model.batt_power_cost_future + model.E_batt_max * model.batt_energy_cost_future) +\
@@ -764,12 +838,12 @@ def runOptimization(PID, output_df_arg):
     export_lifetime = export_df_annualSum['export'].sum()
 
     # Troubleshooting
-    export_df_path = os.path.join(current_dir, 'results', 'HPCscenarios_WindOnly', 'export_df_parsed.csv')
-    export_df_annualSum_path = os.path.join(current_dir, 'results', 'HPCscenarios_WindOnly', 'export_df_annualSum.csv')
-    export_df_parsed.to_csv(export_df_path, index = True)
-    export_df_annualSum.to_csv(export_df_annualSum_path, index = True)
-    print(f'export_lifetime_discounted: {export_lifetime_discounted}')
-    print(f'export_lifetime: {export_lifetime}')
+    # export_df_path = os.path.join(current_dir, 'results', 'HPCscenarios_WindOnly', 'export_df_parsed.csv')
+    # export_df_annualSum_path = os.path.join(current_dir, 'results', 'HPCscenarios_WindOnly', 'export_df_annualSum.csv')
+    # export_df_parsed.to_csv(export_df_path, index = True)
+    # export_df_annualSum.to_csv(export_df_annualSum_path, index = True)
+    # print(f'export_lifetime_discounted: {export_lifetime_discounted}')
+    # print(f'export_lifetime: {export_lifetime}')
     
     # Revenue
     # Extract electricity price time series from model instance
@@ -860,51 +934,81 @@ def runOptimization(PID, output_df_arg):
 
 
 """ ============================
-Define optimization function given a list 
-============================ """
-
-def runOptimizationLoop(PID_list, output_df_arg):
-    i = 0 
-    for PID in PID_list:
-        while True:
-            try: 
-                i = i + 1
-                output_df_arg = runOptimization(PID, output_df_arg)
-                output_df_arg.to_csv(output_df_path_iterations, index = False)
-            except Exception as exc:
-                print(exc)
-                return output_df_arg
-                output_df_arg.to_csv(output_df_path_iterations, index = False)
-            break  
-    return output_df_arg
-
-""" ============================
 Execute optimization loop
 ============================ """
-
 start_time = time.time()
 
-output_df_complete = runOptimizationLoop(list_batch_iter, output_df)
+if location == "HPC":
 
-print("** Completed iteration ", str(i_job), "with filename ", output_df_path_iterations)
-print("**** Completed loop for PID starting with", str(list_batch_iter[0]), "and ending with", str(list_batch_iter[-1]))
-
-# Wait for all jobs to be completed
-comm.Barrier()
-if i_job == 0:
-    print("Concatenating iterations into one csv and save to drive")
-    all_csvs_iter = glob.glob(os.path.join(output_df_path_iterationsFolder, "*.csv"))
-    combined_df = pd.concat((pd.read_csv(f) for f in all_csvs_iter), axis = 0, ignore_index=True)
-    combined_df.to_csv(output_df_path)
+    """ ============================
+    Define optimization function given a list 
+    ============================ """
     
-    missingPIDs_list = list(set(seq["PID"].tolist()) - set(combined_df["PID"].tolist()))
-    print("Missing PIDs:", missingPIDs_list)
-    missingPIDs_df = pd.DataFrame(missingPIDs_list, columns=["missingPIDs"])
-    missingPIDs_df.to_csv(output_df_path_missingPIDs)
+    def runOptimizationLoop(PID_list, output_df_arg):
+        i = 0 
+        for PID in PID_list:
+            while True:
+                try: 
+                    i = i + 1
+                    output_df_arg = runOptimization(PID, output_df_arg)
+                    output_df_arg.to_csv(output_df_path_iterations, index = False)
+                except Exception as exc:
+                    print(exc)
+                    return output_df_arg
+                    output_df_arg.to_csv(output_df_path_iterations, index = False)
+                break  
+        return output_df_arg
 
-else:
-    comm.send(output_df_complete, dest = 0, tag = 11)
+    
+    ## run loop
+    output_df_complete = runOptimizationLoop(list_batch_iter, output_df)
+    
+    print("** Completed iteration ", str(i_job), "with filename ", output_df_path_iterations)
+    print("**** Completed loop for PID starting with", str(list_batch_iter[0]), "and ending with", str(list_batch_iter[-1]))
+    
+    # Wait for all jobs to be completed
+    comm.Barrier()
+    if i_job == 0:
+        print("Concatenating iterations into one csv and save to drive")
+        all_csvs_iter = glob.glob(os.path.join(output_df_path_iterationsFolder, "*.csv"))
+        combined_df = pd.concat((pd.read_csv(f) for f in all_csvs_iter), axis = 0, ignore_index=True)
+        combined_df.to_csv(output_df_path)
+        
+        missingPIDs_list = list(set(seq["PID"].tolist()) - set(combined_df["PID"].tolist()))
+        print("Missing PIDs:", missingPIDs_list)
+        missingPIDs_df = pd.DataFrame(missingPIDs_list, columns=["missingPIDs"])
+        missingPIDs_df.to_csv(output_df_path_missingPIDs)
+    
+    else:
+        comm.send(output_df_complete, dest = 0, tag = 11)
+        
+if location == "local":
+    
+    """ ============================
+    Define optimization function given a list 
+    ============================ """
+    
+    def runOptimizationLoop(PID_list, output_df_arg):
+        i = 0 
+        for PID in PID_list:
+            while True:
+                try: 
+                    start_time_loop = time.time()
+                    i = i + 1
+                    output_df_arg = runOptimization(PID, output_df_arg)
+                    output_df_arg.to_csv(output_df_path, index = False)
+                    end_time_loop = time.time()
+                    print("Time taken:", (end_time_loop - start_time_loop)/60, "minutes")
+                except Exception as exc:
+                    print(exc)
+                    return output_df_arg
+                    output_df_arg.to_csv(output_df_path, index = False)
+                break  
+        return output_df_arg
+    
+    
+    output_df_complete = runOptimizationLoop(PIDsList_needToRun, output_df)
     
 end_time = time.time()
 
-print("Time taken:", end_time - start_time, "seconds")
+print("Time taken:", (end_time - start_time)/60, "minutes")
