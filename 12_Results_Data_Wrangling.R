@@ -24,7 +24,7 @@ for (i in filepaths){
 # Read CSV and add to windOnly_csv_list list
 for (i in filepaths_windOnly){
   csv <- read_csv(here::here('results', 'HPCscenarios', i))
-  csv <- csv %>% rename_with(~ paste0('windOnly_', .), c('revenue', 'cost', 'profit', 'LCOE', 'LVOE', 'NVOE'))
+  csv <- csv %>% rename_with(~ paste0('windOnly_', .), c('exportGen_lifetime', 'revenue', 'cost', 'profit', 'LCOE', 'LVOE', 'NVOE'))
   windOnly_csv_list[[i]] <- csv
 }
 
@@ -44,7 +44,7 @@ for (i in index){
   windOnly_df <- as_tibble(windOnly_csv_list[[i]])
   
   # Select columns of interest
-  windOnly_df <- windOnly_df %>% select(PID, windOnly_cost, windOnly_revenue, windOnly_profit, windOnly_LCOE, windOnly_LVOE, windOnly_NVOE)
+  windOnly_df <- windOnly_df %>% select(PID, windOnly_exportGen_lifetime, windOnly_cost, windOnly_revenue, windOnly_profit, windOnly_LCOE, windOnly_LVOE, windOnly_NVOE)
   
   # Execute left join based on 'PID' column
   join_df <- left_join(df, windOnly_df, by = 'PID')
