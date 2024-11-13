@@ -6,7 +6,7 @@ library(patchwork)
 
 # options(scipen = 10000)
 
-subset_scenarios <- read_csv(here::here('results', 'subset_scenarios.csv'))
+subset_scenarios <- read_csv(here::here('results', 'all_new_scenarios.csv'))
 
 # Subset Midcase/BAU scenarios, PTC does not phaseout
 no_ptc_scenarios <- subset_scenarios %>%
@@ -17,7 +17,9 @@ no_ptc_scenarios <- subset_scenarios %>%
          # Find battery capacity as a percentage of solar capacity
          pct_batteryCap = (batteryCap/solar_capacity) * 100,
          # Find annual average generation exported
-         mean_annual_exportGen = exportGen_lifetime/30) 
+         mean_annual_exportGen = exportGen_lifetime/30,
+         # Find annual average generation exported as a percentage/wind only
+         mean_annual_exportGen_pctWind = (mean_annual_exportGen/(windOnly_exportGen_lifetime/30)) * 100) 
 
 # Subset Midcase/BAU scenarios, PTC phaseout
 ptc_scenarios <- subset_scenarios %>%
@@ -28,7 +30,9 @@ ptc_scenarios <- subset_scenarios %>%
          # Find battery capacity as a percentage of solar capacity
          pct_batteryCap = (batteryCap/solar_capacity) * 100,
          # Find annual average generation exported
-         mean_annual_exportGen = exportGen_lifetime/30)
+         mean_annual_exportGen = exportGen_lifetime/30,
+         # Find annual average generation exported as a percentage/wind only
+         mean_annual_exportGen_pctWind = (mean_annual_exportGen/(windOnly_exportGen_lifetime/30)) * 100)
 
 # View scenario numbers 
 # no_ptc_scenarios <- as.character(unique(no_ptc_scenarios$scenario))
@@ -67,7 +71,7 @@ fig_1_2 <- no_ptc_scenarios %>%
 fig_1_3 <- ptc_scenarios %>%
   ggplot(aes(y = percent_profit, group = scenario, fill = tx_availability)) + 
   geom_boxplot(alpha = 0.7, outlier.shape = NA) +
-  ylim(c(-75, 75)) +
+  ylim(c(-150, 150)) +
   paletteer::scale_fill_paletteer_d('NatParksPalettes::Olympic') +
   labs(y = str_wrap('Difference in lifetime profit (USD/MWh)', width = 12)) +
   theme_classic() +
@@ -80,7 +84,7 @@ fig_1_3 <- ptc_scenarios %>%
 fig_1_4 <- no_ptc_scenarios %>%
   ggplot(aes(y = percent_profit, group = scenario, fill = tx_availability)) + 
   geom_boxplot(alpha = 0.7, outlier.shape = NA) +
-  ylim(c(-75, 75)) +
+  ylim(c(-150, 150)) +
   paletteer::scale_fill_paletteer_d('NatParksPalettes::Olympic') +
   labs(y = str_wrap('Difference in lifetime profit (USD/MWh)', width = 12)) +
   theme_classic() +
@@ -200,14 +204,47 @@ fig_1_10 <- no_ptc_scenarios %>%
   theme(legend.position = 'bottom',
         legend.title = element_blank(),
         axis.title.y = element_blank(),
-        axis.text.y = element_blank()) 
+        axis.text.y = element_blank())
+
+# Box and whisker plot for annual generation exported as a percentage/wind only
+fig_1_11 <- ptc_scenarios %>%
+  ggplot(aes(y = mean_annual_exportGen_pctWind, x = scenario, group = scenario, fill = tx_availability)) + 
+  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+  ylim(c(-15, 175)) +
+  paletteer::scale_fill_paletteer_d('NatParksPalettes::Olympic') +
+  labs(y = str_wrap("Annual average generation exported as percent of wind only", width = 12)) +
+  theme_classic() +
+  theme(legend.position = 'non',
+        legend.title = element_blank(),
+        axis.title.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.x = element_blank())
+  
+fig_1_12 <- no_ptc_scenarios %>%
+  ggplot(aes(y = mean_annual_exportGen_pctWind, x = scenario, group = scenario, fill = tx_availability)) + 
+  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+  ylim(c(-15, 175)) +
+  paletteer::scale_fill_paletteer_d('NatParksPalettes::Olympic') +
+  labs(y = str_wrap("Annual average generation exported as percent of wind only", width = 12)) +
+  theme_classic() +
+  theme(legend.position = 'non',
+        legend.title = element_blank(),
+        axis.title.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.y = element_blank())
 
 # Stitch box and whisker plots into Figure 1 ----
 row_1 <- fig_1_1 + fig_1_2
 row_2 <- fig_1_3 + fig_1_4
 row_3 <- fig_1_5 + fig_1_6
 row_4 <- fig_1_7 + fig_1_8
-row_5_0 <- fig_1_7_5 + fig_1_8_5 # for comparison, may remove 
-row_5 <- fig_1_9 + fig_1_10
+row_5 <- fig_1_11 + fig_1_12
+row_6 <- fig_1_9 + fig_1_10
 
-row_1 / row_2 / row_3 / row_4 / row_5_0 / row_5
+row_1 / row_2 / row_3 / row_4 / row_5 / row_6
+
+
+### TRY IT WITH VIOLIN PLOTS ###
+
