@@ -1,6 +1,5 @@
 library(here)
 library(tidyverse)
-library(paletteer)
 library(sf)
 library(patchwork)
 
@@ -27,7 +26,20 @@ scenarios_by_state <- left_join(us_states, scenarios_by_state, by = "state") %>%
   drop_na(mean_wind_capacity)
   
 pal <- c("#FAE9A0FF", "#DBD797FF", "#BCC68DFF", "#9CB484FF", "#7DA37BFF", "#5E9171FF", "#3F7F68FF", "#1F6E5EFF", "#005C55FF")
-  
+
+map_0 <- ggplot() +
+  geom_sf(data = us_states, size = 8) +
+  geom_sf(data = subset_scenarios, aes(color = solar_wind_ratio)) +
+  scale_color_gradientn(colors = pal, name = "Solar to Wind Ratio",
+                        guide = guide_colorbar(label.position = "bottom",
+                                               title.position = "top",
+                                               direction = "horizontal",
+                                               barwidth = unit(6, "cm"),
+                                               barheight = unit(0.5, "cm"))) +
+  theme_void() +
+  theme(legend.position = "top") +
+  labs(x = NULL, y = NULL)
+
 map_1 <- ggplot() + 
   geom_sf(data = us_states, fill = "#353535", size = 8) +
   geom_sf(data = scenarios_by_state, aes(fill = mean_wind_capacity)) +
@@ -68,4 +80,4 @@ map_3 <- ggplot() +
   theme(legend.position = "top") +
   labs(x = NULL, y = NULL)
 
-map_1 / map_2 / map_3
+map_0 / map_1 / map_2 / map_3
