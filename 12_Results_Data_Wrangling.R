@@ -5,7 +5,8 @@ library(sf)
 options(scipen = 999)
 
 # Define csv file names
-filepaths <- c('Cambium22Midcase_NoPhaseout_2022_Advanced_2025_120_1.csv', 'Cambium22Electrification_NoPhaseout_2022_Advanced_2025_120_2.csv', 'Cambium22Midcase_YesPhaseout_2022_Advanced_2025_120_3.csv', 'Cambium22Electrification_YesPhaseout_2022_Advanced_2025_120_4.csv','Cambium22Midcase_NoPhaseout_2022_Advanced_2025_100_5.csv', 'Cambium22Electrification_NoPhaseout_2022_Advanced_2025_100_6.csv', 'Cambium22Midcase_YesPhaseout_2022_Advanced_2025_100_7.csv', 'Cambium22Electrification_YesPhaseout_2022_Advanced_2025_100_8.csv', 'Cambium22Midcase_NoPhaseout_2022_Advanced_2030_120_9.csv', 'Cambium22Electrification_NoPhaseout_2022_Advanced_2030_120_10.csv', 'Cambium22Midcase_NoPhaseout_2022_Advanced_2030_100_11.csv', 'Cambium22Electrification_NoPhaseout_2022_Advanced_2030_100_12.csv', 'Cambium22Midcase_YesPhaseout_2022_Advanced_2030_120_13.csv', 'Cambium22Electrification_YesPhaseout_2022_Advanced_2030_120_14.csv','Cambium22Midcase_YesPhaseout_2022_Advanced_2030_100_15.csv','Cambium22Electrification_YesPhaseout_2022_Advanced_2030_100_16.csv')
+filepaths <- c('Cambium22Midcase_NoPhaseout_2022_Advanced_2025_120_1_YesSolar_YesBatt.csv', 'Cambium22Electrification_NoPhaseout_2022_Advanced_2025_120_2_YesSolar_YesBatt.csv', 'Cambium22Midcase_YesPhaseout_2022_Advanced_2025_120_3_YesSolar_YesBatt.csv', 'Cambium22Electrification_YesPhaseout_2022_Advanced_2025_120_4_YesSolar_YesBatt.csv','Cambium22Midcase_NoPhaseout_2022_Advanced_2025_100_5_YesSolar_YesBatt.csv', 'Cambium22Electrification_NoPhaseout_2022_Advanced_2025_100_6_YesSolar_YesBatt.csv', 'Cambium22Midcase_YesPhaseout_2022_Advanced_2025_100_7_YesSolar_YesBatt.csv', 'Cambium22Electrification_YesPhaseout_2022_Advanced_2025_100_8_YesSolar_YesBatt.csv', 'Cambium22Midcase_NoPhaseout_2022_Advanced_2030_120_9_YesSolar_YesBatt.csv', 'Cambium22Electrification_NoPhaseout_2022_Advanced_2030_120_10_YesSolar_YesBatt.csv', 'Cambium22Midcase_NoPhaseout_2022_Advanced_2030_100_11_YesSolar_YesBatt.csv', 'Cambium22Electrification_NoPhaseout_2022_Advanced_2030_100_12_YesSolar_YesBatt.csv', 'Cambium22Midcase_YesPhaseout_2022_Advanced_2030_120_13_YesSolar_YesBatt.csv', 'Cambium22Electrification_YesPhaseout_2022_Advanced_2030_120_14_YesSolar_YesBatt.csv','Cambium22Midcase_YesPhaseout_2022_Advanced_2030_100_15_YesSolar_YesBatt.csv','Cambium22Electrification_YesPhaseout_2022_Advanced_2030_100_16_YesSolar_YesBatt.csv')
+filepaths_windOnly <- c('Cambium22Midcase_NoPhaseout_2022_Advanced_2025_120_1_NoSolar_NoBatt.csv', 'Cambium22Electrification_NoPhaseout_2022_Advanced_2025_120_2_NoSolar_NoBatt.csv', 'Cambium22Midcase_YesPhaseout_2022_Advanced_2025_120_3_NoSolar_NoBatt.csv', 'Cambium22Electrification_YesPhaseout_2022_Advanced_2025_120_4_NoSolar_NoBatt.csv','Cambium22Midcase_NoPhaseout_2022_Advanced_2025_100_5_NoSolar_NoBatt.csv', 'Cambium22Electrification_NoPhaseout_2022_Advanced_2025_100_6_NoSolar_NoBatt.csv', 'Cambium22Midcase_YesPhaseout_2022_Advanced_2025_100_7_NoSolar_NoBatt.csv', 'Cambium22Electrification_YesPhaseout_2022_Advanced_2025_100_8_NoSolar_NoBatt.csv', 'Cambium22Midcase_NoPhaseout_2022_Advanced_2030_120_9_NoSolar_NoBatt.csv', 'Cambium22Electrification_NoPhaseout_2022_Advanced_2030_120_10_NoSolar_NoBatt.csv', 'Cambium22Midcase_NoPhaseout_2022_Advanced_2030_100_11_NoSolar_NoBatt.csv', 'Cambium22Electrification_NoPhaseout_2022_Advanced_2030_100_12_NoSolar_NoBatt.csv', 'Cambium22Midcase_YesPhaseout_2022_Advanced_2030_120_13_NoSolar_NoBatt.csv', 'Cambium22Electrification_YesPhaseout_2022_Advanced_2030_120_14_NoSolar_NoBatt.csv','Cambium22Midcase_YesPhaseout_2022_Advanced_2030_100_15_NoSolar_NoBatt.csv','Cambium22Electrification_YesPhaseout_2022_Advanced_2030_100_16_NoSolar_NoBatt.csv')
 
 # Initalize empty lists
 csv_list <- list()
@@ -21,8 +22,8 @@ for (i in filepaths){
 
 # Loop through each filepath
 # Read CSV and add to windOnly_csv_list list
-for (i in filepaths){
-  csv <- read_csv(here::here('results', 'windOnlyScenarios', i))
+for (i in filepaths_windOnly){
+  csv <- read_csv(here::here('results', 'HPCscenarios', i))
   csv <- csv %>% rename_with(~ paste0('windOnly_', .), c('revenue', 'cost', 'profit', 'LCOE', 'LVOE', 'NVOE'))
   windOnly_csv_list[[i]] <- csv
 }
@@ -92,8 +93,8 @@ all_scenarios <- all_scenarios %>%
 
 # Subset to keep sites with positive difference in profit 
 subset_scenarios <- all_scenarios
+scenario_15 <- all_scenarios %>% filter(scenario == 15)
 # subset_scenarios <- all_scenarios %>% filter(percent_profit >= 0.00) # _aboveZero.csv
-# subset_scenarios <- all_scenarios # _nofilter.csv
 
 # Read US PIDs CSV
 us_pids <- read_csv(here::here('data', 'uswtdb', 'us_PID_cords_15.csv'))
@@ -108,6 +109,7 @@ us_pids_df <- us_pids %>%
   select(-c('p_cap', 't_count', 't_cap'))
 
 # Perform left join based on PID
+#subset_scenarios <- left_join(scenario_15, us_pids_df, by = 'PID')
 subset_scenarios <- left_join(subset_scenarios, us_pids_df, by = 'PID')
 
 # Set variables to factor class
@@ -115,4 +117,4 @@ subset_scenarios <- subset_scenarios %>%
   mutate(across(c(ptc, scenario, capital_cost, cambium, tx_availability), as.factor))
 
 # Write as CSV
-write_csv(subset_scenarios, here::here('results', 'subset_scenarios.csv'))
+write_csv(subset_scenarios, here::here('results', 'all_new_scenarios.csv'))
