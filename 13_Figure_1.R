@@ -1,7 +1,6 @@
 library(here)
 library(tidyverse)
 library(paletteer)
-library(ggrepel)
 library(patchwork)
 
 # options(scipen = 10000)
