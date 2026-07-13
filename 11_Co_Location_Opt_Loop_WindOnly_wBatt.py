@@ -23,9 +23,9 @@ inputFolder = os.path.join(current_dir, "data")
 
 location = "local" # "local" or "HPC"
 
-date = "092524"
+date = "101724"
 
-scenariosGroupName = "scenarios_WindOnlyOpt"
+scenariosGroupName = "scenarios_windOnly_noBatt"  #"scenarios_windSolar_noBatt" "scenarios_windOnly_noBatt"
 
 seq = pd.read_csv(os.path.join(inputFolder, "uswtdb", "us_PID_cords_15.csv"))
 #seq = pd.DataFrame({'PID': [1]})
