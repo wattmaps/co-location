@@ -718,6 +718,11 @@ def runOptimization(PID, output_df_arg):
                                     "0_y": "year", 
                                     0: val_colname}, inplace = True)
         return df_parsed
+    
+    scenario_PID_foldername_path = os.path.join(scenario_foldername_path, "PID_" + str(PID))
+                 
+    if not os.path.exists(scenario_PID_foldername_path):
+        os.makedirs(scenario_PID_foldername_path)
 
     # Actual Generation
     # Extract actual generation time series from model instance
@@ -730,6 +735,12 @@ def runOptimization(PID, output_df_arg):
     actualGen_df_annualSum = actualGen_df_parsed[["actualGen", "year"]].groupby("year").sum()
     # Calculate lifetime actual generation
     actualGen_lifetime = actualGen_df_annualSum["actualGen"].sum()
+    ## EXPORT TIME SERIES
+    actualGen_df_path = os.path.join(scenario_PID_foldername_path, 'actualGen_df_parsed.csv')
+    actualGen_df_annualSum_path = os.path.join(scenario_PID_foldername_path, 'actualGen_df_annualSum.csv')
+    actualGen_df_parsed.to_csv(actualGen_df_path, index = True)
+    actualGen_df_annualSum.to_csv(actualGen_df_annualSum_path, index = True)
+    
 
     # Potential Generation
     # Extract potential generation time series from model instance
@@ -742,6 +753,11 @@ def runOptimization(PID, output_df_arg):
     potentialGen_df_annualSum = potentialGen_df_parsed[["potentialGen", "year"]].groupby("year").sum()
     # Calculate lifetime potential generation
     potentialGen_lifetime = potentialGen_df_annualSum["potentialGen"].sum()
+    ## EXPORT TIME SERIES
+    potentialGen_df_path = os.path.join(scenario_PID_foldername_path, 'potentialGen_df_parsed.csv')
+    potentialGen_df_annualSum_path = os.path.join(scenario_PID_foldername_path, 'potentialGen_df_annualSum.csv')
+    potentialGen_df_parsed.to_csv(potentialGen_df_path, index = True)
+    potentialGen_df_annualSum.to_csv(potentialGen_df_annualSum_path, index = True)
 
     # Curtailment
     # Calculate lifetime curtailment
@@ -769,12 +785,13 @@ def runOptimization(PID, output_df_arg):
     # Calculate undiscounted lifetime revenue
     export_lifetime = export_df_annualSum['export'].sum()
 
-    # export_df_path = os.path.join(current_dir, 'results', 'HPCscenarios', 'test', 'export_df_parsed.csv')
-    # export_df_annualSum_path = os.path.join(current_dir, 'results', 'HPCscenarios', 'test', 'export_df_annualSum.csv')
-    # export_df_parsed.to_csv(export_df_path, index = True)
-    # export_df_annualSum.to_csv(export_df_annualSum_path, index = True)
-    # print(f'export_lifetime_discounted: {export_lifetime_discounted}')
-    # print(f'export_lifetime: {export_lifetime}')
+    ## EXPORT TIME SERIES
+    export_df_path = os.path.join(scenario_PID_foldername_path, 'export_df_parsed.csv')
+    export_df_annualSum_path = os.path.join(scenario_PID_foldername_path, 'export_df_annualSum.csv')
+    export_df_parsed.to_csv(export_df_path, index = True)
+    export_df_annualSum.to_csv(export_df_annualSum_path, index = True)
+    print(f'export_lifetime_discounted: {export_lifetime_discounted}')
+    print(f'export_lifetime: {export_lifetime}')
     
     # Revenue
     # Extract electricity price time series from model instance
@@ -863,6 +880,7 @@ def runOptimization(PID, output_df_arg):
                     ignore_index = True)
     return output_df
 
+    output_df.to_csv(os.path.join(scenario_PID_foldername_path, 'output_df.csv'))
 
 """ ============================
 Define optimization function given a list 
