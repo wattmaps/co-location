@@ -18,9 +18,6 @@ inputFolder = os.path.join(current_dir, 'data')
 
 seq = pd.read_csv(os.path.join(inputFolder, 'uswtdb', 'us_PID_cords_15.csv'))
 
-# Create a df with column names
-output_df = pd.DataFrame(columns = ['PID', 'solar_capacity', 'wind_capacity', 'solar_wind_ratio', 'tx_capacity', 'batteryCap', 'batteryEnergy', 'revenue', 'cost', 'profit'])
-
 ''' ============================
 Retrieve system arguments
 ============================ '''
@@ -33,18 +30,23 @@ ATBcapexYr_scen = sys.argv[5] ## should be either "2025" or "2030"
 tx_scen = sys.argv[6] ## should be either "100" or "120"
 scen_num = sys.argv[7]
 mode = sys.argv[8] ## anything--can be "check" or "final"
+backfillNum = sys.argv[9]
+
+solarCapAvail = sys.argv[10] ## "NoSolar" for windOnly or ## "YesSolar" for colocation
+batteryAvail = sys.argv[11] ## "NoBatt" or "YesBatt" ## whether or not to include battery 
 
 ''' ============================
 Set filepath for combined results
 ============================ '''
 
-scenario_foldername_iter = cambium_scen + "_" + PTC_scen + "_" + ATBreleaseYr_scen + "_" + ATBcost_scen + "_" + ATBcapexYr_scen + "_" + tx_scen + "_" + scen_num
-scenario_filename_combined = cambium_scen + "_" + PTC_scen + "_" + ATBreleaseYr_scen + "_" + ATBcost_scen + "_" + ATBcapexYr_scen + "_" + tx_scen + "_" + scen_num  + ".csv"
-scenario_filename_combined_missingPIDs = cambium_scen + "_" + PTC_scen + "_" + ATBreleaseYr_scen + "_" + ATBcost_scen + "_" + ATBcapexYr_scen + "_" + tx_scen + "_" + scen_num + "_"  + mode + "_missingPIDs" + ".csv"
+scenario_foldername_iter = cambium_scen + "_" + PTC_scen + "_" + ATBreleaseYr_scen + "_" + ATBcost_scen + "_" + ATBcapexYr_scen + "_" + tx_scen + "_" + scen_num + "_" + solarCapAvail + "_" + batteryAvail
+scenario_filename_combined = cambium_scen + "_" + PTC_scen + "_" + ATBreleaseYr_scen + "_" + ATBcost_scen + "_" + ATBcapexYr_scen + "_" + tx_scen + "_" + scen_num  + "_" + solarCapAvail + "_" + batteryAvail +".csv"
+scenario_filename_combined_missingPIDs = cambium_scen + "_" + PTC_scen + "_" + ATBreleaseYr_scen + "_" + ATBcost_scen + "_" + ATBcapexYr_scen + "_" + tx_scen + "_" + scen_num + "_" + solarCapAvail + "_" + batteryAvail + "_" + mode + "_missingPIDs" + ".csv"
 
-output_df_path_iterationsFolder = os.path.join(current_dir, 'results', 'HPCscenarios', scenario_foldername_iter)
-output_df_path = os.path.join(current_dir, 'results', 'HPCscenarios', scenario_filename_combined)
-output_df_path_missingPIDs = os.path.join(current_dir, 'results', 'HPCscenarios', scenario_filename_combined_missingPIDs)
+output_df_path_iterationsFolder = os.path.join(current_dir, "results", "HPCscenarios", scenario_foldername_iter)
+output_df_path = os.path.join(current_dir, "results", "HPCscenarios", scenario_filename_combined)
+output_df_path_missingPIDs = os.path.join(current_dir, "results", "HPCscenarios", scenario_filename_combined_missingPIDs)
+
 
 ''' ============================
 Combine into singular DataFrame
